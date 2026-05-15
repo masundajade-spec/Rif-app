@@ -21,246 +21,24 @@ const theme = {
 };
 
 const subjects = [
-  // ZIMSEC O-Level
-  { name: "English Language", progress: 0, color: "#8B3FC8", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "English for Communication", progress: 0, color: "#7B1FA2", chapters: 7, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Mathematics", progress: 0, color: "#1A4DB3", chapters: 12, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Additional Mathematics", progress: 0, color: "#0D47A1", chapters: 11, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Pure Mathematics", progress: 0, color: "#1565C0", chapters: 10, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Combined Science", progress: 0, color: "#1A7A4A", chapters: 10, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Biology", progress: 0, color: "#4CAF50", chapters: 11, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Chemistry", progress: 0, color: "#9C27B0", chapters: 9, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Physics", progress: 0, color: "#2196F3", chapters: 10, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Agriculture", progress: 0, color: "#8BC34A", chapters: 10, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Crop Science", progress: 0, color: "#689F38", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Animal Science", progress: 0, color: "#558B2F", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Statistics", progress: 0, color: "#00838F", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Principles of Accounting", progress: 0, color: "#607D8B", chapters: 9, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Commerce", progress: 0, color: "#FF5722", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Business Studies", progress: 0, color: "#F57C00", chapters: 9, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Economics", progress: 0, color: "#F44336", chapters: 10, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Business Enterprise", progress: 0, color: "#E64A19", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Business Enterprise and Skills", progress: 0, color: "#BF360C", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "History", progress: 0, color: "#795548", chapters: 9, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Economic History", progress: 0, color: "#6D4C41", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Geography", progress: 0, color: "#00BCD4", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Sociology", progress: 0, color: "#EC407A", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Family and Religious Studies", progress: 0, color: "#FF9800", chapters: 7, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Shona", progress: 0, color: "#C9A84C", chapters: 7, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Ndebele", progress: 0, color: "#E8803A", chapters: 7, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Literature in Shona", progress: 0, color: "#A67C00", chapters: 7, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Literature in Ndebele", progress: 0, color: "#D4840A", chapters: 7, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Literature in English", progress: 0, color: "#6A1B9A", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "French", progress: 0, color: "#009688", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Sign Language", progress: 0, color: "#26A69A", chapters: 6, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Communication Skills", progress: 0, color: "#00ACC1", chapters: 6, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Computer Science", progress: 0, color: "#3F51B5", chapters: 10, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "ICT", progress: 0, color: "#303F9F", chapters: 10, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Building Technology and Design", progress: 0, color: "#5D4037", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Wood Technology and Design", progress: 0, color: "#6D4C41", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Metal Technology and Design", progress: 0, color: "#455A64", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Design and Technology", progress: 0, color: "#546E7A", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Technical Graphics", progress: 0, color: "#37474F", chapters: 7, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Food Technology and Design", progress: 0, color: "#E91E63", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Fashion and Fabrics", progress: 0, color: "#F06292", chapters: 7, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Textile Technology", progress: 0, color: "#EC407A", chapters: 7, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Hospitality Management and Design", progress: 0, color: "#AD1457", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Home Management", progress: 0, color: "#C2185B", chapters: 7, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Art and Design", progress: 0, color: "#FF4081", chapters: 6, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Music", progress: 0, color: "#7C4DFF", chapters: 6, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Dance", progress: 0, color: "#651FFF", chapters: 6, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Theatre Arts", progress: 0, color: "#6200EA", chapters: 6, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Physical Education", progress: 0, color: "#00C853", chapters: 6, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Sport Management", progress: 0, color: "#1B5E20", chapters: 6, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Sport and Technology", progress: 0, color: "#2E7D32", chapters: 6, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Guidance and Counselling", progress: 0, color: "#78909C", chapters: 6, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
-  { name: "Heritage Studies", progress: 0, color: "#8D6E63", chapters: 8, done: 0, level: "O-Level", curriculum: "ZIMSEC" },
- 
-  // ZIMSEC A-Level
-  { name: "Mathematics", progress: 0, color: "#1A4DB3", chapters: 16, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Pure Mathematics", progress: 0, color: "#1565C0", chapters: 14, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Statistics", progress: 0, color: "#00838F", chapters: 10, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Further Mathematics", progress: 0, color: "#0D47A1", chapters: 14, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Physics", progress: 0, color: "#2196F3", chapters: 14, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Chemistry", progress: 0, color: "#9C27B0", chapters: 13, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Biology", progress: 0, color: "#4CAF50", chapters: 14, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Geography", progress: 0, color: "#00BCD4", chapters: 10, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "History", progress: 0, color: "#795548", chapters: 11, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Economic History", progress: 0, color: "#6D4C41", chapters: 10, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Sociology", progress: 0, color: "#EC407A", chapters: 9, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Family and Religious Studies", progress: 0, color: "#FF9800", chapters: 8, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Divinity", progress: 0, color: "#78909C", chapters: 8, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Economics", progress: 0, color: "#F44336", chapters: 12, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Business Studies", progress: 0, color: "#FF9800", chapters: 10, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Accounting", progress: 0, color: "#607D8B", chapters: 12, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Business Enterprise", progress: 0, color: "#E64A19", chapters: 9, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Computer Science", progress: 0, color: "#3F51B5", chapters: 12, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "ICT", progress: 0, color: "#303F9F", chapters: 11, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "English Language", progress: 0, color: "#8B3FC8", chapters: 10, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Literature in English", progress: 0, color: "#6A1B9A", chapters: 10, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Communication Skills", progress: 0, color: "#00ACC1", chapters: 7, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Shona", progress: 0, color: "#C9A84C", chapters: 9, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Ndebele", progress: 0, color: "#E8803A", chapters: 9, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Shona Literature", progress: 0, color: "#A67C00", chapters: 8, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Ndebele Literature", progress: 0, color: "#D4840A", chapters: 8, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Art and Design", progress: 0, color: "#FF4081", chapters: 7, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Music", progress: 0, color: "#7C4DFF", chapters: 7, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Theatre Arts", progress: 0, color: "#6200EA", chapters: 7, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Physical Education", progress: 0, color: "#00C853", chapters: 7, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Sport Science", progress: 0, color: "#2E7D32", chapters: 7, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Agriculture", progress: 0, color: "#8BC34A", chapters: 11, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Crop Science", progress: 0, color: "#689F38", chapters: 9, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Animal Science", progress: 0, color: "#558B2F", chapters: 9, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Guidance and Counselling", progress: 0, color: "#78909C", chapters: 7, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
-  { name: "Heritage Studies", progress: 0, color: "#8D6E63", chapters: 9, done: 0, level: "A-Level", curriculum: "ZIMSEC" },
- 
-  // Cambridge IGCSE (O-Level)
-  { name: "Accounting", progress: 0, color: "#607D8B", chapters: 9, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Agriculture", progress: 0, color: "#8BC34A", chapters: 9, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Art & Design", progress: 0, color: "#FF4081", chapters: 7, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Biology", progress: 0, color: "#4CAF50", chapters: 12, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Business Studies", progress: 0, color: "#FF9800", chapters: 10, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Chemistry", progress: 0, color: "#9C27B0", chapters: 10, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Combined Science", progress: 0, color: "#1A7A4A", chapters: 10, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Computer Science", progress: 0, color: "#3F51B5", chapters: 11, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Design & Technology", progress: 0, color: "#546E7A", chapters: 8, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Economics", progress: 0, color: "#F44336", chapters: 10, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "English First Language", progress: 0, color: "#8B3FC8", chapters: 9, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "English Second Language", progress: 0, color: "#7B1FA2", chapters: 8, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Literature in English", progress: 0, color: "#6A1B9A", chapters: 8, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Food & Nutrition", progress: 0, color: "#E91E63", chapters: 8, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Geography", progress: 0, color: "#00BCD4", chapters: 9, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "History", progress: 0, color: "#795548", chapters: 9, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "ICT", progress: 0, color: "#303F9F", chapters: 10, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Mathematics", progress: 0, color: "#1A4DB3", chapters: 13, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Additional Mathematics", progress: 0, color: "#0D47A1", chapters: 12, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Physics", progress: 0, color: "#2196F3", chapters: 11, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Physical Education", progress: 0, color: "#00C853", chapters: 7, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Religious Studies", progress: 0, color: "#78909C", chapters: 7, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Sociology", progress: 0, color: "#EC407A", chapters: 8, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "Travel & Tourism", progress: 0, color: "#00ACC1", chapters: 8, done: 0, level: "O-Level", curriculum: "Cambridge" },
-  { name: "French", progress: 0, color: "#009688", chapters: 9, done: 0, level: "O-Level", curriculum: "Cambridge" },
- 
-  // Cambridge A-Level
-  { name: "Mathematics", progress: 0, color: "#1A4DB3", chapters: 18, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Further Mathematics", progress: 0, color: "#0D47A1", chapters: 16, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Physics", progress: 0, color: "#2196F3", chapters: 15, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Chemistry", progress: 0, color: "#9C27B0", chapters: 14, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Biology", progress: 0, color: "#4CAF50", chapters: 15, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Economics", progress: 0, color: "#F44336", chapters: 13, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Business", progress: 0, color: "#FF9800", chapters: 12, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Accounting", progress: 0, color: "#607D8B", chapters: 13, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Computer Science", progress: 0, color: "#3F51B5", chapters: 13, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Information Technology", progress: 0, color: "#303F9F", chapters: 12, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Geography", progress: 0, color: "#00BCD4", chapters: 11, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "History", progress: 0, color: "#795548", chapters: 12, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Sociology", progress: 0, color: "#EC407A", chapters: 10, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Psychology", progress: 0, color: "#AB47BC", chapters: 11, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "English Language", progress: 0, color: "#8B3FC8", chapters: 10, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "English Literature", progress: 0, color: "#6A1B9A", chapters: 10, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "English General Paper", progress: 0, color: "#7B1FA2", chapters: 9, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Global Perspectives & Research", progress: 0, color: "#00838F", chapters: 9, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Law", progress: 0, color: "#37474F", chapters: 11, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Art & Design", progress: 0, color: "#FF4081", chapters: 8, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Music", progress: 0, color: "#7C4DFF", chapters: 8, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Physical Education", progress: 0, color: "#00C853", chapters: 8, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Environmental Management", progress: 0, color: "#388E3C", chapters: 9, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Travel & Tourism", progress: 0, color: "#00ACC1", chapters: 9, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "French", progress: 0, color: "#009688", chapters: 11, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Design & Technology", progress: 0, color: "#546E7A", chapters: 9, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Thinking Skills", progress: 0, color: "#455A64", chapters: 8, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Media Studies", progress: 0, color: "#F06292", chapters: 8, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Divinity / Religious Studies", progress: 0, color: "#78909C", chapters: 8, done: 0, level: "A-Level", curriculum: "Cambridge" },
-  { name: "Marine Science", progress: 0, color: "#0277BD", chapters: 9, done: 0, level: "A-Level", curriculum: "Cambridge" },
+  { name: "Mathematics", progress: 68, color: "#1A4DB3", chapters: 12, done: 8 },
+  { name: "Physics", progress: 45, color: "#C9A84C", chapters: 10, done: 4 },
+  { name: "Chemistry", progress: 82, color: "#1A7A4A", chapters: 9, done: 7 },
+  { name: "English Language", progress: 30, color: "#8B3FC8", chapters: 8, done: 2 },
 ];
- 
-  const books = [
-  // ZIMSEC O-Level Books
-  { title: "Maths Today O-Level", author: "College Press Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#1A4DB3" },
-  { title: "O-Level Mathematics Complete", author: "ZimEdPress", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#0D47A1" },
-  { title: "Combined Science for Zimbabwe", author: "College Press Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#1A7A4A" },
-  { title: "O-Level Physics Zimbabwe", author: "College Press Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#2196F3" },
-  { title: "O-Level Chemistry Zimbabwe", author: "ZimEdPress", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#9C27B0" },
-  { title: "O-Level Biology Zimbabwe", author: "College Press Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#4CAF50" },
-  { title: "History of Africa & Zimbabwe", author: "ZimEdPress", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#795548" },
-  { title: "Geography for Zimbabwe O-Level", author: "College Press Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#00BCD4" },
-  { title: "Commerce O-Level Zimbabwe", author: "ZimEdPress", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#FF5722" },
-  { title: "Principles of Accounts Zimbabwe", author: "College Press Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#607D8B" },
-  { title: "Economics O-Level Guide", author: "ZimEdPress", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#F44336" },
-  { title: "Business Studies O-Level", author: "College Press Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#FF9800" },
-  { title: "Family and Religious Studies", author: "College Press Zimbabwe", price: "$2.99/mo", tag: "ZIMSEC O-Level", color: "#FF9800" },
-  { title: "Shona O-Level", author: "College Press Zimbabwe", price: "$2.99/mo", tag: "ZIMSEC O-Level", color: "#C9A84C" },
-  { title: "Ndebele O-Level", author: "College Press Zimbabwe", price: "$2.99/mo", tag: "ZIMSEC O-Level", color: "#E8803A" },
-  { title: "Computer Science O-Level", author: "ZimEdPress", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#3F51B5" },
-  { title: "ICT O-Level Zimbabwe", author: "College Press Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#303F9F" },
-  { title: "French for Zimbabwe Schools", author: "Longman Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#009688" },
-  { title: "Agriculture O-Level Zimbabwe", author: "College Press Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#8BC34A" },
-  { title: "Heritage Studies Zimbabwe", author: "ZimEdPress", price: "$2.99/mo", tag: "ZIMSEC O-Level", color: "#8D6E63" },
-  { title: "Sociology O-Level Zimbabwe", author: "College Press Zimbabwe", price: "$3.99/mo", tag: "ZIMSEC O-Level", color: "#EC407A" },
-  { title: "Food Technology & Design", author: "ZimEdPress", price: "$2.99/mo", tag: "ZIMSEC O-Level", color: "#E91E63" },
- 
-  // ZIMSEC A-Level Books
-  { title: "A-Level Mathematics Zimbabwe", author: "College Press Zimbabwe", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#1A4DB3" },
-  { title: "A-Level Pure Mathematics", author: "ZimEdPress", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#1565C0" },
-  { title: "A-Level Statistics Zimbabwe", author: "College Press Zimbabwe", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#00838F" },
-  { title: "A-Level Physics Zimbabwe", author: "ZimEdPress", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#2196F3" },
-  { title: "A-Level Chemistry Zimbabwe", author: "College Press Zimbabwe", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#9C27B0" },
-  { title: "A-Level Biology Zimbabwe", author: "ZimEdPress", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#4CAF50" },
-  { title: "A-Level Economics Zimbabwe", author: "College Press Zimbabwe", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#F44336" },
-  { title: "A-Level Geography Zimbabwe", author: "ZimEdPress", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#00BCD4" },
-  { title: "A-Level Accounting Zimbabwe", author: "College Press Zimbabwe", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#607D8B" },
-  { title: "A-Level Computer Science", author: "ZimEdPress", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#3F51B5" },
-  { title: "A-Level Business Studies", author: "College Press Zimbabwe", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#FF9800" },
-  { title: "A-Level History Zimbabwe", author: "ZimEdPress", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#795548" },
-  { title: "A-Level Shona Zimbabwe", author: "College Press Zimbabwe", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#C9A84C" },
-  { title: "A-Level Ndebele Zimbabwe", author: "College Press Zimbabwe", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#E8803A" },
-  { title: "A-Level FRS Zimbabwe", author: "ZimEdPress", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#FF9800" },
-  { title: "Heritage Studies A-Level", author: "College Press Zimbabwe", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#8D6E63" },
-  { title: "A-Level Sociology Zimbabwe", author: "ZimEdPress", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#EC407A" },
-  { title: "A-Level Agriculture Zimbabwe", author: "College Press Zimbabwe", price: "$4.99/mo", tag: "ZIMSEC A-Level", color: "#8BC34A" },
- 
-  // Cambridge IGCSE Books
-  { title: "Cambridge IGCSE Mathematics", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#1A4DB3" },
-  { title: "Cambridge IGCSE Add. Maths", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#0D47A1" },
-  { title: "Cambridge IGCSE Physics", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#2196F3" },
-  { title: "Cambridge IGCSE Chemistry", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#9C27B0" },
-  { title: "Cambridge IGCSE Biology", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#4CAF50" },
-  { title: "Cambridge IGCSE Economics", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#F44336" },
-  { title: "Cambridge IGCSE Computer Science", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#3F51B5" },
-  { title: "Cambridge IGCSE French", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#009688" },
-  { title: "Cambridge IGCSE Business Studies", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#FF9800" },
-  { title: "Cambridge IGCSE Geography", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#00BCD4" },
-  { title: "Cambridge IGCSE History", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#795548" },
-  { title: "Cambridge IGCSE Accounting", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#607D8B" },
-  { title: "Cambridge IGCSE ICT", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#303F9F" },
-  { title: "Cambridge IGCSE Sociology", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#EC407A" },
-  { title: "Cambridge IGCSE English", author: "Cambridge University Press", price: "$5.99/mo", tag: "Cambridge O-Level", color: "#8B3FC8" },
- 
-  // Cambridge A-Level Books
-  { title: "Cambridge A-Level Mathematics", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#1A4DB3" },
-  { title: "Cambridge A-Level Further Maths", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#0D47A1" },
-  { title: "Cambridge A-Level Physics", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#2196F3" },
-  { title: "Cambridge A-Level Chemistry", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#9C27B0" },
-  { title: "Cambridge A-Level Biology", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#4CAF50" },
-  { title: "Cambridge A-Level Economics", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#F44336" },
-  { title: "Cambridge A-Level Computer Science", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#3F51B5" },
-  { title: "Cambridge A-Level Psychology", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#AB47BC" },
-  { title: "Cambridge A-Level Sociology", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#EC407A" },
-  { title: "Cambridge A-Level Law", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#37474F" },
-  { title: "Cambridge A-Level History", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#795548" },
-  { title: "Cambridge A-Level Geography", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#00BCD4" },
-  { title: "Cambridge A-Level Business", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#FF9800" },
-  { title: "Cambridge A-Level Accounting", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#607D8B" },
-  { title: "Cambridge A-Level French", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#009688" },
-  { title: "Cambridge General Paper (GP)", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#7B1FA2" },
-  { title: "Cambridge Thinking Skills", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#455A64" },
-  { title: "Cambridge Global Perspectives", author: "Cambridge University Press", price: "$6.99/mo", tag: "Cambridge A-Level", color: "#00838F" },
+
+const books = [
+  { title: "O-Level Mathematics Complete", author: "ZimEdPress", price: "$4.99/mo", tag: "ZIMSEC", color: "#0D2B6B" },
+  { title: "Cambridge Physics Mastery", author: "CambridgeEd", price: "$5.99/mo", tag: "Cambridge", color: "#1A7A4A" },
+  { title: "Chemistry Made Simple", author: "AfriLearn", price: "$3.99/mo", tag: "ZIMSEC", color: "#8B3FC8" },
+  { title: "A-Level Economics Guide", author: "ZimEdPress", price: "$4.99/mo", tag: "Cambridge", color: "#C9A84C" },
 ];
 
 const navItems = [
   { id: "Dashboard", icon: "⊞", label: "Dashboard" },
   { id: "Syllabus", icon: "✓", label: "Syllabus" },
   { id: "Library", icon: "▤", label: "Library" },
+  { id: "Chat", icon: "💬", label: "Chat" },
   { id: "Teacher", icon: "◎", label: "Teacher" },
 ];
 
@@ -576,6 +354,13 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout 
         {screen === "Dashboard" && <DashboardView t={t} user={user} />}
         {screen === "Syllabus" && <SyllabusView t={t} />}
         {screen === "Library" && <LibraryView t={t} />}
+        {screen === "Chat" && user && (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16, background: t.bg }}>
+    <div style={{ fontSize: 56 }}>💬</div>
+    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: t.text, fontWeight: 700 }}>Chat Coming Soon</div>
+    <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Study chat rooms are being set up. Check back soon!</div>
+  </div>
+)}
         {screen === "Teacher" && <TeacherView t={t} />}
       </div>
     </div>
@@ -732,44 +517,20 @@ function SyllabusView({ t }) {
 
 function LibraryView({ t }) {
   const [tab, setTab] = useState("All");
-  
-  const filteredBooks = books.filter(book => {
-    if (tab === "All") return true;
-    if (tab === "ZIMSEC") return book.tag.includes("ZIMSEC");
-    if (tab === "Cambridge") return book.tag.includes("Cambridge");
-    if (tab === "My Books") return false;
-    return true;
-  });
-
   return (
     <div style={{ padding: "32px 36px", maxWidth: 900 }}>
       <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, color: t.text, marginBottom: 6 }}>Book Library</h1>
       <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 28 }}>Curated resources for Cambridge & ZIMSEC</p>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 28, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 28 }}>
         {["All", "ZIMSEC", "Cambridge", "My Books"].map(tb => (
-          <button key={tb} className="tab-btn" onClick={() => setTab(tb)} style={{
-            padding: "7px 18px", borderRadius: 99,
-            background: tab === tb ? "#C9A84C" : t.card,
-            border: `1px solid ${tab === tb ? "#C9A84C" : t.cardBorder}`,
-            color: tab === tb ? "#0A1628" : t.textMuted,
-            fontSize: 14, fontWeight: tab === tb ? 700 : 400,
-          }}>{tb}</button>
+          <button key={tb} className="tab-btn" onClick={() => setTab(tb)} style={{ padding: "7px 18px", borderRadius: 99, background: tab === tb ? "#C9A84C" : t.card, border: `1px solid ${tab === tb ? "#C9A84C" : t.cardBorder}`, color: tab === tb ? "#0A1628" : t.textMuted, fontSize: 14, fontWeight: tab === tb ? 700 : 400 }}>{tb}</button>
         ))}
       </div>
 
-      {filteredBooks.length === 0 && (
-        <div style={{ textAlign: "center", padding: "60px 20px", color: t.textMuted, fontFamily: "'Source Sans 3', sans-serif" }}>
-          {tab === "My Books" ? "You haven't subscribed to any books yet." : "No books found."}
-        </div>
-      )}
-
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 28 }}>
-        {filteredBooks.map(book => (
-          <div key={book.title} className="hover-lift" style={{
-            background: t.card, border: `1px solid ${t.cardBorder}`,
-            borderRadius: 16, overflow: "hidden", display: "flex",
-          }}>
+        {books.map(book => (
+          <div key={book.title} className="hover-lift" style={{ background: t.card, border: `1px solid ${t.cardBorder}`, borderRadius: 16, overflow: "hidden", display: "flex" }}>
             <div style={{ width: 80, background: `linear-gradient(160deg, ${book.color}, ${book.color}88)`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <span style={{ fontSize: 28 }}>📖</span>
             </div>
@@ -779,10 +540,7 @@ function LibraryView({ t }) {
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginBottom: 10 }}>{book.author}</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "#C9A84C" }}>{book.price}</span>
-                <button className="gold-btn" onClick={() => alert(`Subscribing to ${book.title} — Payment integration coming soon!`)}
-                  style={{ borderRadius: 7, padding: "5px 14px", fontSize: 12 }}>
-                  Subscribe
-                </button>
+                <button className="gold-btn" style={{ borderRadius: 7, padding: "5px 14px", fontSize: 12 }}>Subscribe</button>
               </div>
             </div>
           </div>
@@ -797,10 +555,7 @@ function LibraryView({ t }) {
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#C9A84C" }}>$9.99<span style={{ fontSize: 14, color: "#A0AECB" }}>/mo</span></div>
-          <button className="gold-btn" onClick={() => alert("All Access Plan — Payment integration coming soon!")}
-            style={{ borderRadius: 10, padding: "10px 22px", fontSize: 14, marginTop: 10 }}>
-            Get All Access
-          </button>
+          <button className="gold-btn" style={{ borderRadius: 10, padding: "10px 22px", fontSize: 14, marginTop: 10 }}>Get All Access</button>
         </div>
       </div>
     </div>
