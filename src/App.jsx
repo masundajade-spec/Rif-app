@@ -622,7 +622,7 @@ function ChatView({ t, user }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
-
+  const [search, setSearch] = useState("");
   const rooms = [
     { id: 1, name: "Mathematics", level: "O-Level", curriculum: "ZIMSEC", color: "#1A4DB3" },
     { id: 2, name: "Physics", level: "O-Level", curriculum: "ZIMSEC", color: "#2196F3" },
@@ -686,8 +686,21 @@ function ChatView({ t, user }) {
             Discuss with classmates
           </div>
         </div>
-        <div style={{ padding: 8 }}>
-          {rooms.map(room => (
+      <div style={{ padding: "8px 8px 0" }}>
+  <input
+    placeholder="Search subjects..."
+    onChange={e => setSearch(e.target.value)}
+    style={{
+      width: "100%", padding: "8px 12px", borderRadius: 8,
+      borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder,
+      background: t.bg, color: t.text,
+      fontFamily: "'Source Sans 3', sans-serif", fontSize: 12,
+      outline: "none", marginBottom: 8,
+    }}
+  />
+</div>
+<div style={{ padding: 8 }}>
+  {rooms.filter(room => room.name.toLowerCase().includes(search.toLowerCase())).map(room => (
             <div key={room.id} onClick={() => { setActiveRoom(room); loadMessages(room); }} style={{
               padding: "12px 14px", borderRadius: 10, marginBottom: 4, cursor: "pointer",
               background: activeRoom?.id === room.id ? room.color + "22" : "transparent",
