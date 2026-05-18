@@ -99,7 +99,7 @@ export default function App() {
       {screen === "Landing" && <LandingScreen t={t} isDark={isDark} setIsDark={setIsDark} setScreen={setScreen} />}
       {screen === "Login" && <AuthScreen t={t} mode="login" setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
-      {["Dashboard", "Syllabus", "Library", "Teacher"].includes(screen) && (
+      {["Dashboard", "Syllabus", "Library", "Chat", "Teacher"].includes(screen) && (
         <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} />
       )}
     </div>
@@ -325,7 +325,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout 
           {navItems.map(item => {
             const isActive = screen === item.id;
             return (
-              <div key={item.id} className="nav-item" onClick={() => setScreen(item.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 10, marginBottom: 4, background: isActive ? "#C9A84C18" : "transparent", borderLeft: isActive ? "3px solid #C9A84C" : "3px solid transparent" }}>
+              <div key={item.id} className="nav-item" onClick={() => setScreen(item.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 10, marginBottom: 4, background: isActive ? "#C9A84C18" : "transparent", borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: isActive ? "#C9A84C" : "transparent" }}>
                 <span style={{ fontSize: 18, opacity: isActive ? 1 : 0.5 }}>{item.icon}</span>
                 <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, fontWeight: isActive ? 600 : 400, color: isActive ? "#C9A84C" : "#8899BB" }}>{item.label}</span>
               </div>
@@ -354,13 +354,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout 
         {screen === "Dashboard" && <DashboardView t={t} user={user} />}
         {screen === "Syllabus" && <SyllabusView t={t} />}
         {screen === "Library" && <LibraryView t={t} />}
-        {screen === "Chat" && user && (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16, background: t.bg }}>
-    <div style={{ fontSize: 56 }}>💬</div>
-    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: t.text, fontWeight: 700 }}>Chat Coming Soon</div>
-    <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Study chat rooms are being set up. Check back soon!</div>
-  </div>
-)}
+        {screen === "Chat" && <ChatView t={t} user={user} />}
         {screen === "Teacher" && <TeacherView t={t} />}
       </div>
     </div>
@@ -620,6 +614,185 @@ function TeacherView({ t }) {
           <button className="gold-btn" style={{ width: "100%", borderRadius: 10, padding: "11px", fontSize: 14, marginTop: 8 }}>View All Students</button>
         </div>
       </div>
+    </div>
+  );
+}
+function ChatView({ t, user }) {
+  const [activeRoom, setActiveRoom] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const rooms = [
+    { id: 1, name: "Mathematics", level: "O-Level", curriculum: "ZIMSEC", color: "#1A4DB3" },
+    { id: 2, name: "Physics", level: "O-Level", curriculum: "ZIMSEC", color: "#2196F3" },
+    { id: 3, name: "Chemistry", level: "O-Level", curriculum: "ZIMSEC", color: "#9C27B0" },
+    { id: 4, name: "Biology", level: "O-Level", curriculum: "ZIMSEC", color: "#4CAF50" },
+    { id: 5, name: "English Language", level: "O-Level", curriculum: "ZIMSEC", color: "#8B3FC8" },
+    { id: 6, name: "Economics", level: "A-Level", curriculum: "ZIMSEC", color: "#F44336" },
+    { id: 7, name: "History", level: "O-Level", curriculum: "ZIMSEC", color: "#795548" },
+    { id: 8, name: "Geography", level: "O-Level", curriculum: "ZIMSEC", color: "#00BCD4" },
+    { id: 9, name: "Computer Science", level: "O-Level", curriculum: "ZIMSEC", color: "#3F51B5" },
+    { id: 10, name: "Mathematics", level: "O-Level", curriculum: "Cambridge", color: "#1565C0" },
+    { id: 11, name: "General Discussion", level: "All", curriculum: "All", color: "#C9A84C" },
+  ];
+
+  const userName = user?.user_metadata?.full_name || user?.email || "Student";
+
+  async function loadMessages(room) {
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("room_id", room.id)
+      .order("created_at", { ascending: true })
+      .limit(50);
+    if (data) setMessages(data);
+  }
+
+  async function sendMessage() {
+    if (!newMessage.trim() || sending) return;
+    setSending(true);
+    await supabase.from("messages").insert({
+      room_id: activeRoom.id,
+      user_id: user.id,
+      user_name: userName,
+      content: newMessage.trim(),
+    });
+    setNewMessage("");
+    setSending(false);
+    loadMessages(activeRoom);
+  }
+
+ return (
+    <div style={{ display: "flex", height: "100vh", }}>
+      <div style={{
+        width: 240,
+        background: t.card,
+        borderRightWidth: 1,
+        borderRightStyle: "solid",
+        borderRightColor: t.cardBorder,
+        overflowY: "auto",
+      }}>
+        <div style={{
+          padding: "20px 16px",
+          borderBottomWidth: 1,
+          borderBottomStyle: "solid",
+          borderBottomColor: t.cardBorder,
+        }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, fontWeight: 700 }}>
+            💬 Study Chat
+          </div>
+          <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginTop: 4 }}>
+            Discuss with classmates
+          </div>
+        </div>
+        <div style={{ padding: 8 }}>
+          {rooms.map(room => (
+            <div key={room.id} onClick={() => { setActiveRoom(room); loadMessages(room); }} style={{
+              padding: "12px 14px", borderRadius: 10, marginBottom: 4, cursor: "pointer",
+              background: activeRoom?.id === room.id ? room.color + "22" : "transparent",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: room.color, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, fontWeight: 600, color: t.text }}>{room.name}</div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted }}>{room.curriculum} · {room.level}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {activeRoom ? (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: t.bg }}>
+          <div style={{
+            padding: "16px 24px",
+            background: t.card,
+            borderBottomWidth: 1,
+            borderBottomStyle: "solid",
+            borderBottomColor: t.cardBorder,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}>
+            <div style={{ width: 12, height: 12, borderRadius: "50%", background: activeRoom.color }} />
+            <div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, fontWeight: 700 }}>{activeRoom.name}</div>
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>{activeRoom.curriculum} · {activeRoom.level}</div>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+            {messages.length === 0 && (
+              <div style={{ textAlign: "center", marginTop: 60, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted }}>
+                No messages yet — start the discussion! 🎓
+              </div>
+            )}
+            {messages.map(msg => {
+              const isMe = msg.user_id === user?.id;
+              return (
+                <div key={msg.id} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", gap: 10, alignItems: "flex-end", marginBottom: 12 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: isMe ? "linear-gradient(135deg, #C9A84C, #E8CC80)" : "linear-gradient(135deg, #1A4DB3, #3468D1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                    {msg.user_name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ maxWidth: "65%" }}>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted, marginBottom: 3, textAlign: isMe ? "right" : "left" }}>
+                      {isMe ? "You" : msg.user_name}
+                    </div>
+                    <div style={{ background: isMe ? "linear-gradient(135deg, #C9A84C, #E8CC80)" : t.card, borderRadius: 12, padding: "10px 14px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: isMe ? "#0A1628" : t.text }}>
+                      {msg.content}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{
+            padding: "16px 24px",
+            background: t.card,
+            borderTopWidth: 1,
+            borderTopStyle: "solid",
+            borderTopColor: t.cardBorder,
+            display: "flex",
+            gap: 12,
+          }}>
+            <input
+              value={newMessage}
+              onChange={e => setNewMessage(e.target.value)}
+              onKeyPress={e => e.key === "Enter" && sendMessage()}
+              placeholder="Type a message and press Enter..."
+              style={{
+                flex: 1, padding: "12px 16px", borderRadius: 12,
+                borderWidth: 1.5, borderStyle: "solid", borderColor: t.cardBorder,
+                background: t.bg, color: t.text,
+                fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none",
+              }}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={sending || !newMessage.trim()}
+              style={{
+                background: "linear-gradient(135deg, #C9A84C, #E8CC80)",
+                borderWidth: 0, borderRadius: 12,
+                padding: "12px 20px", color: "#0A1628",
+                fontWeight: 700, cursor: "pointer", fontSize: 14,
+                opacity: sending || !newMessage.trim() ? 0.5 : 1,
+                fontFamily: "'Source Sans 3', sans-serif",
+              }}
+            >
+              {sending ? "..." : "Send →"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, background: t.bg }}>
+          <div style={{ fontSize: 56 }}>💬</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: t.text, fontWeight: 700 }}>Select a Chat Room</div>
+          <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Choose a subject from the left</div>
+        </div>
+      )}
     </div>
   );
 }
