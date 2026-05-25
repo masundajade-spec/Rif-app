@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
-
+import TestView from "./Test";
 const theme = {
   light: {
     bg: "#F4F6FB", card: "#FFFFFF", cardBorder: "#E2E8F4",
@@ -39,6 +39,7 @@ const navItems = [
   { id: "Syllabus", icon: "✓", label: "Syllabus" },
   { id: "Library", icon: "▤", label: "Library" },
   { id: "Chat", icon: "💬", label: "Chat" },
+  { id: "Tests", icon: "📝", label: "Tests" },
   { id: "Teacher", icon: "◎", label: "Teacher" },
 ];
 
@@ -99,7 +100,7 @@ export default function App() {
       {screen === "Landing" && <LandingScreen t={t} isDark={isDark} setIsDark={setIsDark} setScreen={setScreen} />}
       {screen === "Login" && <AuthScreen t={t} mode="login" setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
-      {["Dashboard", "Syllabus", "Library", "Chat", "Teacher"].includes(screen) && (
+      {["Dashboard", "Syllabus", "Library", "Chat", "Tests", "Teacher"].includes(screen) && (
         <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} />
       )}
     </div>
@@ -355,6 +356,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout 
         {screen === "Syllabus" && <SyllabusView t={t} />}
         {screen === "Library" && <LibraryView t={t} />}
         {screen === "Chat" && <ChatView t={t} user={user} />}
+        {screen === "Tests" && <TestView t={t} user={user} />}
         {screen === "Teacher" && <TeacherView t={t} />}
       </div>
     </div>
