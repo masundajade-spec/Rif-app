@@ -652,7 +652,7 @@ function ChatView({ t, user }) {
   async function sendMessage() {
     if (!newMessage.trim() || sending) return;
     setSending(true);
-    await supabase.from("messages").insert({
+    const { error } = await supabase.from("messages").insert({
       room_id: activeRoom.id,
       user_id: user.id,
       user_name: userName,
@@ -660,9 +660,9 @@ function ChatView({ t, user }) {
     });
     setNewMessage("");
     setSending(false);
-    loadMessages(activeRoom);
+    await loadMessages(activeRoom);
   }
-
+  
  return (
     <div style={{ display: "flex", height: "100vh", }}>
       <div style={{
