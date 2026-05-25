@@ -182,12 +182,12 @@ function AuthScreen({ t, mode, setScreen }) {
       } else {
         // Create profile
         if (data.user) {
-          await supabase.from("profiles").insert({
+          await supabase.from("profiles").upsert({
             id: data.user.id,
             full_name: fullName,
             role,
             curriculum,
-          });
+         }, { onConflict: "id" });
         }
         setSuccess("Account created! Check your email to confirm, then log in.");
       }
