@@ -353,7 +353,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout 
 
       <div style={{ flex: 1, overflow: "auto", background: t.bg }}>
         {screen === "Dashboard" && <DashboardView t={t} user={user} />}
-        {screen === "Syllabus" && <SyllabusView t={t} />}
+        {screen === "Syllabus" && <SyllabusView t={t} user={user} />}
         {screen === "Library" && <LibraryView t={t} />}
         {screen === "Chat" && <ChatView t={t} user={user} />}
         {screen === "Tests" && <TestView t={t} user={user} />}
@@ -437,76 +437,222 @@ function DashboardView({ t, user }) {
   );
 }
 
-function SyllabusView({ t }) {
-  const [active, setActive] = useState("Mathematics");
-  const subj = subjects.find(s => s.name === active);
+function SyllabusView({ t, user }) {
+  const [subjects, setSubjects] = useState([]);
+  const [activeSubject, setActiveSubject] = useState(null);
+  const [topics, setTopics] = useState([]);
+  const [progress, setProgress] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("ZIMSEC");
+  const [level, setLevel] = useState("O-Level");
 
-  const topics = [
-    { name: "Number & Algebra Foundations", status: "done" },
-    { name: "Linear Equations & Graphs", status: "done" },
-    { name: "Quadratic Expressions", status: "done" },
-    { name: "Simultaneous Equations", status: "done" },
-    { name: "Quadratic Equations", status: "active" },
-    { name: "Indices & Logarithms", status: "upcoming" },
-    { name: "Sequences & Series", status: "upcoming" },
-    { name: "Functions & Mappings", status: "upcoming" },
-    { name: "Matrices & Transformations", status: "upcoming" },
-    { name: "Statistics & Probability", status: "upcoming" },
-    { name: "Trigonometry", status: "skipped" },
-    { name: "Vectors", status: "upcoming" },
-  ];
+  useEffect(() => {
+    loadSubjects();
+  }, [filter, level]);
+
+  useEffect(() => {
+    if (activeSubject) loadTopics(activeSubject);
+  }, [activeSubject]);
+
+  async function loadSubjects() {
+    const { data } = await supabase
+      .from("syllabus_topics")
+      .select("subject, curriculum, level")
+      .eq("curriculum", filter)
+      .eq("level", level);
+    if (data) {
+      const unique = [...new Set(data.map(d => d.subject))];
+      setSubjects(unique);
+      if (unique.length > 0) setActiveSubject(unique[0]);
+    }
+    setLoading(false);
+  }
+
+  async function loadTopics(subject) {
+    const { data } = await supabase
+      .from("syllabus_topics")
+      .select("*")
+      .eq("subject", subject)
+      .eq("curriculum", filter)
+      .eq("level", level)
+      .order("topic_order", { ascending: true });
+    if (data) setTopics(data);
+
+    if (user) {
+      const { data: prog } = await supabase
+        .from("student_progress")
+        .select("*")
+        .eq("user_id", user.id);
+      if (prog) {
+        const map = {};
+        prog.forEach(p => { map[p.topic_id] = p.status; });
+        setProgress(map);
+      }
+    }
+  }
+
+  async function updateProgress(topicId, status) {
+    if (!user) return;
+    await supabase.from("student_progress").upsert({
+      user_id: user.id,
+      topic_id: topicId,
+      status,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,topic_id" });
+    setProgress(prev => ({ ...prev, [topicId]: status }));
+  }
+
+  const done = topics.filter(t => progress[t.id] === "done").length;
+  const inProgress = topics.filter(t => progress[t.id] === "in_progress").length;
+  const percent = topics.length > 0 ? Math.round(done / topics.length * 100) : 0;
+
+  const statusColor = { done: "#1A7A4A", in_progress: "#C9A84C", not_started: "#6B7A99" };
+  const statusLabel = { done: "Done ✓", in_progress: "In Progress", not_started: "Not Started" };
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: t.bg }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Loading syllabus...</div>
+    </div>
+  );
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 900 }}>
-      <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, color: t.text, marginBottom: 6 }}>Syllabus Tracker</h1>
-      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 28 }}>Track every topic across your subjects</p>
+    <div style={{ padding: "32px 36px", maxWidth: 1000, background: t.bg, minHeight: "100vh" }}>
+      <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, color: t.text, marginBottom: 6 }}>
+        Syllabus Tracker
+      </h1>
+      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24 }}>
+        Track every topic across your subjects
+      </p>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 28, flexWrap: "wrap" }}>
-        {subjects.map(s => (
-          <button key={s.name} className="tab-btn" onClick={() => setActive(s.name)} style={{ padding: "8px 18px", borderRadius: 99, background: active === s.name ? s.color : t.card, border: `1px solid ${active === s.name ? s.color : t.cardBorder}`, color: active === s.name ? "#fff" : t.textMuted, fontSize: 14, fontWeight: 600 }}>{s.name}</button>
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+        {["ZIMSEC", "Cambridge"].map(c => (
+          <button key={c} onClick={() => { setFilter(c); setActiveSubject(null); }} style={{
+            padding: "7px 18px", borderRadius: 99,
+            background: filter === c ? "#C9A84C" : t.card,
+            border: `1px solid ${filter === c ? "#C9A84C" : t.cardBorder}`,
+            color: filter === c ? "#0A1628" : t.textMuted,
+            fontSize: 14, fontWeight: filter === c ? 700 : 400,
+            cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+          }}>{c}</button>
+        ))}
+        {["O-Level", "A-Level"].map(l => (
+          <button key={l} onClick={() => { setLevel(l); setActiveSubject(null); }} style={{
+            padding: "7px 18px", borderRadius: 99,
+            background: level === l ? "#1A4DB3" : t.card,
+            border: `1px solid ${level === l ? "#1A4DB3" : t.cardBorder}`,
+            color: level === l ? "#fff" : t.textMuted,
+            fontSize: 14, fontWeight: level === l ? 700 : 400,
+            cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+          }}>{l}</button>
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20 }}>
-        <div style={{ background: t.card, border: `1px solid ${t.cardBorder}`, borderRadius: 16, overflow: "hidden" }}>
-          <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.cardBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text }}>{active}</h3>
-            <span style={{ background: t.badge, color: t.badgeText, borderRadius: 6, padding: "3px 12px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>{subj?.done}/{subj?.chapters} done</span>
-          </div>
-          {topics.map((topic, i) => (
-            <div key={topic.name} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", borderBottom: i < topics.length - 1 ? `1px solid ${t.cardBorder}` : "none", background: topic.status === "active" ? `${subj?.color}11` : "transparent" }}>
-              <div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, background: topic.status === "done" ? "#1A7A4A" : topic.status === "active" ? subj?.color : topic.status === "skipped" ? "#8B3FC8" : t.cardBorder, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12 }}>
-                {topic.status === "done" ? "✓" : topic.status === "active" ? "▶" : topic.status === "skipped" ? "~" : ""}
-              </div>
-              <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: topic.status === "done" ? t.textMuted : t.text, fontWeight: topic.status === "active" ? 600 : 400, textDecoration: topic.status === "skipped" ? "line-through" : "none" }}>{topic.name}</span>
-              {topic.status === "active" && <span style={{ marginLeft: "auto", background: `${subj?.color}22`, color: subj?.color, borderRadius: 6, padding: "2px 10px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, fontWeight: 600 }}>In Progress</span>}
-              {topic.status === "skipped" && <span style={{ marginLeft: "auto", background: "#8B3FC822", color: "#8B3FC8", borderRadius: 6, padding: "2px 10px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 12 }}>Not Tested</span>}
-            </div>
-          ))}
-        </div>
-
-        <div>
-          <div style={{ background: t.card, border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 22, marginBottom: 16 }}>
-            <h4 style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: t.text, marginBottom: 16 }}>Progress</h4>
-            <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 44, fontWeight: 700, color: subj?.color }}>{subj?.progress}%</div>
-              <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>Completed</div>
-            </div>
-            <div style={{ background: t.bg, borderRadius: 99, height: 10, overflow: "hidden" }}>
-              <div className="progress-fill" style={{ width: `${subj?.progress}%`, background: subj?.color }} />
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
-              {[["Done", "8", "#1A7A4A"], ["Remaining", "3", "#1A4DB3"], ["Skipped", "1", "#8B3FC8"], ["Active", "1", "#C9A84C"]].map(([label, val, color]) => (
-                <div key={label} style={{ background: t.bg, borderRadius: 8, padding: "10px", textAlign: "center" }}>
-                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color }}>{val}</div>
-                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted }}>{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <button className="gold-btn" style={{ width: "100%", borderRadius: 10, padding: "12px", fontSize: 14 }}>Continue Learning →</button>
-        </div>
+      {/* Subject tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {subjects.map(s => (
+          <button key={s} onClick={() => setActiveSubject(s)} style={{
+            padding: "7px 16px", borderRadius: 99,
+            background: activeSubject === s ? "#1A4DB3" : t.card,
+            border: `1px solid ${activeSubject === s ? "#1A4DB3" : t.cardBorder}`,
+            color: activeSubject === s ? "#fff" : t.textMuted,
+            fontSize: 13, cursor: "pointer",
+            fontFamily: "'Source Sans 3', sans-serif",
+          }}>{s}</button>
+        ))}
       </div>
+
+      {activeSubject && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: 20 }}>
+          {/* Topics list */}
+          <div style={{ background: t.card, borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ padding: "20px 24px", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text }}>{activeSubject}</h3>
+              <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>{done}/{topics.length} done</span>
+            </div>
+            {topics.map((topic, i) => {
+              const status = progress[topic.id] || "not_started";
+              return (
+                <div key={topic.id} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 24px",
+                  borderBottomWidth: i < topics.length - 1 ? 1 : 0,
+                  borderBottomStyle: "solid",
+                  borderBottomColor: t.cardBorder,
+                  background: status === "in_progress" ? "#C9A84C11" : "transparent",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: "50%",
+                      background: statusColor[status],
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0,
+                    }}>
+                      {status === "done" ? "✓" : status === "in_progress" ? "▶" : ""}
+                    </div>
+                    <span style={{
+                      fontFamily: "'Source Sans 3', sans-serif", fontSize: 14,
+                      color: status === "done" ? t.textMuted : t.text,
+                      fontWeight: status === "in_progress" ? 600 : 400,
+                      textDecoration: status === "done" ? "line-through" : "none",
+                    }}>
+                      {topic.topic_order}. {topic.topic_name}
+                    </span>
+                  </div>
+                  <select
+                    value={status}
+                    onChange={e => updateProgress(topic.id, e.target.value)}
+                    style={{
+                      padding: "4px 8px", borderRadius: 6,
+                      borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder,
+                      background: t.bg, color: statusColor[status],
+                      fontFamily: "'Source Sans 3', sans-serif", fontSize: 12,
+                      cursor: "pointer", outline: "none",
+                    }}
+                  >
+                    <option value="not_started">Not Started</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="done">Done</option>
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Progress sidebar */}
+          <div>
+            <div style={{ background: t.card, borderRadius: 16, padding: 22, marginBottom: 16 }}>
+              <h4 style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: t.text, marginBottom: 16 }}>Progress</h4>
+              <div style={{ textAlign: "center", marginBottom: 16 }}>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 48, fontWeight: 700, color: "#1A4DB3" }}>{percent}%</div>
+                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>Completed</div>
+              </div>
+              <div style={{ background: t.bg, borderRadius: 99, height: 10, overflow: "hidden", marginBottom: 16 }}>
+                <div style={{ width: `${percent}%`, height: "100%", background: "#1A4DB3", borderRadius: 99, transition: "width 0.5s" }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {[
+                  ["Done", done, "#1A7A4A"],
+                  ["In Progress", inProgress, "#C9A84C"],
+                  ["Remaining", topics.length - done - inProgress, "#1A4DB3"],
+                  ["Total", topics.length, "#6B7A99"],
+                ].map(([label, val, color]) => (
+                  <div key={label} style={{ background: t.bg, borderRadius: 8, padding: 10, textAlign: "center" }}>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color }}>{val}</div>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={() => topics.forEach(topic => updateProgress(topic.id, "done"))}
+              style={{ width: "100%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif" }}
+            >
+              Mark All Done ✓
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
