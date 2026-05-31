@@ -11,6 +11,8 @@ export default function TestView({ t, user }) {
   const [violations, setViolations] = useState(0);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [filterC, setFilterC] = useState("All");
+  const [filterL, setFilterL] = useState("All");
   const [warning, setWarning] = useState("");
   const timerRef = useRef(null);
   const violationsRef = useRef(0);
@@ -152,8 +154,36 @@ export default function TestView({ t, user }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
-        {tests.map(test => (
+     {/* Filters */}
+<div style={{ display: "flex", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
+  {["All", "ZIMSEC", "Cambridge"].map(c => (
+    <button key={c} onClick={() => setFilterC(c)} style={{
+      padding: "7px 18px", borderRadius: 99,
+      background: filterC === c ? "#C9A84C" : t.card,
+      border: `1px solid ${filterC === c ? "#C9A84C" : t.cardBorder}`,
+      color: filterC === c ? "#0A1628" : t.textMuted,
+      fontSize: 14, fontWeight: filterC === c ? 700 : 400,
+      cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+    }}>{c}</button>
+  ))}
+  {["All", "O-Level", "A-Level"].map(l => (
+    <button key={l} onClick={() => setFilterL(l)} style={{
+      padding: "7px 18px", borderRadius: 99,
+      background: filterL === l ? "#1A4DB3" : t.card,
+      border: `1px solid ${filterL === l ? "#1A4DB3" : t.cardBorder}`,
+      color: filterL === l ? "#fff" : t.textMuted,
+      fontSize: 14, fontWeight: filterL === l ? 700 : 400,
+      cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+    }}>{l}</button>
+  ))}
+</div>
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+  {tests.filter(test => {
+    const matchC = filterC === "All" || test.curriculum === filterC;
+    const matchL = filterL === "All" || test.level === filterL;
+    return matchC && matchL;
+  }).map(test => (
           <div key={test.id} className="hover-lift" style={{ background: t.card, borderRadius: 16, padding: 24, borderTopWidth: 3, borderTopStyle: "solid", borderTopColor: "#1A4DB3" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
               <div style={{ background: "#1A4DB322", color: "#1A4DB3", borderRadius: 6, padding: "3px 10px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, fontWeight: 600 }}>
