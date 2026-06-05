@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
   const { email, phone, amount, item, method } = req.body;
 
   try {
-    const payment = paynow.createPayment(`RIF-${Date.now()}`, "masundajade6@gmail.com");
+    const payment = paynow.createPayment(`RIF-${Date.now()}`, "masundajade@gmail.com");
     payment.add(item, parseFloat(amount));
 
     if (method === "ecocash" || method === "onemoney") {

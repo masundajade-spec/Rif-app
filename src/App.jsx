@@ -742,7 +742,7 @@ function LibraryView({ t }) {
         setPaying(true);
         setPayMessage("");
         try {
-          const res = await fetch("/api/payment", {
+          const res = await fetch("https://rif-app.vercel.app/api/payment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
