@@ -11,7 +11,8 @@ module.exports = async function handler(req, res) {
   }
 
   const { email, phone, amount, item, method } = req.body;
-
+  console.log("Payment request:", { email, phone, amount, item, method });
+  console.log("Using Paynow key:", process.env.PAYNOW_KEY ? "Key exists" : "NO KEY FOUND");
   try {
     const payment = paynow.createPayment(`RIF-${Date.now()}`, "masundajade@gmail.com");
     payment.add(item, parseFloat(amount));
