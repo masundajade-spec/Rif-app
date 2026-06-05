@@ -5,7 +5,7 @@ const paynow = new Paynow("25025", process.env.PAYNOW_KEY);
 paynow.resultUrl = "https://rif-app.vercel.app/api/payment";
 paynow.returnUrl = "https://rif-app.vercel.app";
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   const { email, phone, amount, item, method } = req.body;
 
   try {
-    let payment = paynow.createPayment(`RIF-${Date.now()}`, email);
+    const payment = paynow.createPayment(`RIF-${Date.now()}`, email);
     payment.add(item, parseFloat(amount));
 
     if (method === "ecocash" || method === "onemoney") {
@@ -42,4 +42,4 @@ export default async function handler(req, res) {
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
-}
+};

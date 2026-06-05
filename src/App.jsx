@@ -659,6 +659,11 @@ function SyllabusView({ t, user }) {
 
 function LibraryView({ t }) {
   const [tab, setTab] = useState("All");
+  const [paymentItem, setPaymentItem] = useState(null);
+  const [phone, setPhone] = useState("");
+  const [payMethod, setPayMethod] = useState("ecocash");
+  const [paying, setPaying] = useState(false);
+  const [payMessage, setPayMessage] = useState("");
   return (
     <div style={{ padding: "32px 36px", maxWidth: 900 }}>
       <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, color: t.text, marginBottom: 6 }}>Book Library</h1>
@@ -682,7 +687,7 @@ function LibraryView({ t }) {
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginBottom: 10 }}>{book.author}</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "#C9A84C" }}>{book.price}</span>
-                <button className="gold-btn" style={{ borderRadius: 7, padding: "5px 14px", fontSize: 12 }}>Subscribe</button>
+           <button className="gold-btn" onClick={() => setPaymentItem({ name: book.title, price: parseFloat(book.price.replace("$","").replace("/mo","")) })} style={{ borderRadius: 7, padding: "5px 14px", fontSize: 12 }}>Subscribe</button>
               </div>
             </div>
           </div>
@@ -700,6 +705,78 @@ function LibraryView({ t }) {
           <button className="gold-btn" style={{ borderRadius: 10, padding: "10px 22px", fontSize: 14, marginTop: 10 }}>Get All Access</button>
         </div>
       </div>
+      {paymentItem && (
+  <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+    <div style={{ background: t.card, borderRadius: 20, padding: "36px", maxWidth: 420, width: "90%", boxShadow: "0 24px 64px rgba(0,0,0,0.3)" }}>
+      <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: t.text, marginBottom: 8 }}>Subscribe to</h3>
+      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 4 }}>{paymentItem.name}</p>
+      <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: "#C9A84C", marginBottom: 24 }}>${paymentItem.price}/mo</p>
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, display: "block", marginBottom: 6 }}>Payment Method</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          {[["ecocash", "EcoCash"], ["onemoney", "OneMoney"], ["card", "Card"]].map(([val, label]) => (
+            <div key={val} onClick={() => setPayMethod(val)} style={{ flex: 1, padding: "10px", borderRadius: 8, textAlign: "center", cursor: "pointer", background: payMethod === val ? "#C9A84C22" : t.bg, borderWidth: 2, borderStyle: "solid", borderColor: payMethod === val ? "#C9A84C" : t.cardBorder, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.text }}>
+              {label}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {payMethod !== "card" && (
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, display: "block", marginBottom: 6 }}>Phone Number</label>
+          <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. 0771234567"
+            style={{ width: "100%", padding: "12px 16px", borderRadius: 10, borderWidth: 1.5, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}
+          />
+        </div>
+      )}
+
+      {payMessage && (
+        <div style={{ background: payMessage.includes("success") ? "#1A7A4A22" : "#F4433622", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: payMessage.includes("success") ? "#1A7A4A" : "#F44336" }}>
+          {payMessage}
+        </div>
+      )}
+
+      <button onClick={async () => {
+        setPaying(true);
+        setPayMessage("");
+        try {
+          const res = await fetch("/api/payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: user?.email,
+              phone,
+              amount: paymentItem.price,
+              item: paymentItem.name,
+              method: payMethod,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            if (data.redirectUrl) {
+              window.open(data.redirectUrl, "_blank");
+            } else {
+              setPayMessage("✅ Payment request sent! Check your phone for EcoCash prompt.");
+            }
+          } else {
+            setPayMessage("❌ Payment failed: " + data.error);
+          }
+        } catch (e) {
+          setPayMessage("❌ Error: " + e.message);
+        }
+        setPaying(false);
+      }} style={{ width: "100%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 12, padding: "14px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 15, opacity: paying ? 0.7 : 1, marginBottom: 10 }}>
+        {paying ? "Processing..." : `Pay $${paymentItem.price} →`}
+      </button>
+
+      <button onClick={() => { setPaymentItem(null); setPayMessage(""); setPhone(""); }} style={{ width: "100%", background: "transparent", border: "none", padding: "10px", color: t.textMuted, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
     </div>
   );
 }
