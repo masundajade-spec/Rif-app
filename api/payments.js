@@ -1,18 +1,20 @@
 const { Paynow } = require("paynow");
 
 const paynow = new Paynow("25025", process.env.PAYNOW_KEY);
-
 paynow.resultUrl = "https://rif-app.vercel.app/api/payment";
 paynow.returnUrl = "https://rif-app.vercel.app";
 
 module.exports = async function handler(req, res) {
+  if (req.method === "GET") {
+    return res.status(200).json({ status: "ok" });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { email, phone, amount, item, method } = req.body;
-  console.log("Payment request:", { email, phone, amount, item, method });
-  console.log("Using Paynow key:", process.env.PAYNOW_KEY ? "Key exists" : "NO KEY FOUND");
+  const { phone, amount, item, method } = req.body;
+
   try {
     const payment = paynow.createPayment(`RIF-${Date.now()}`, "masundajade@gmail.com");
     payment.add(item, parseFloat(amount));

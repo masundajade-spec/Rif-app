@@ -656,6 +656,14 @@ function SyllabusView({ t, user }) {
     </div>
   );
 }
+async function generateHash(fields, integrationKey) {
+  const str = Object.values(fields).join("") + integrationKey;
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const hashBuffer = await crypto.subtle.digest("SHA-512", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+}
 
 function LibraryView({ t }) {
   const [tab, setTab] = useState("All");
@@ -732,48 +740,48 @@ function LibraryView({ t }) {
         </div>
       )}
 
-      {payMessage && (
-        <div style={{ background: payMessage.includes("success") ? "#1A7A4A22" : "#F4433622", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: payMessage.includes("success") ? "#1A7A4A" : "#F44336" }}>
+    {payMessage && (
+        <div style={{ background: payMessage.includes("✅") ? "#1A7A4A22" : "#F4433622", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: payMessage.includes("✅") ? "#1A7A4A" : "#F44336" }}>
           {payMessage}
         </div>
       )}
 
       <button onClick={async () => {
-        setPaying(true);
-        setPayMessage("");
-        try {
-          const res = await fetch("https://rif-app.vercel.app/api/payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: user?.email,
-              phone,
-              amount: paymentItem.price,
-              item: paymentItem.name,
-              method: payMethod,
-            }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            if (data.redirectUrl) {
-              window.open(data.redirectUrl, "_blank");
-            } else {
-              setPayMessage("✅ Payment request sent! Check your phone for EcoCash prompt.");
-            }
-          } else {
-            setPayMessage("❌ Payment failed: " + data.error);
-          }
-        } catch (e) {
-          setPayMessage("❌ Error: " + e.message);
-        }
-        setPaying(false);
-      }} style={{ width: "100%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 12, padding: "14px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 15, opacity: paying ? 0.7 : 1, marginBottom: 10 }}>
-        {paying ? "Processing..." : `Pay $${paymentItem.price} →`}
-      </button>
+  setPaying(true);
+  setPayMessage("");
+  try {
+    const res = await fetch("https://rif-app.vercel.app/api/payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phone,
+        amount: paymentItem.price,
+        item: paymentItem.name,
+        method: payMethod,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (data.redirectUrl) {
+        window.open(data.redirectUrl, "_blank");
+        setPayMessage("✅ Payment page opened! Complete payment there.");
+      } else {
+        setPayMessage("✅ " + data.instructions);
+      }
+    } else {
+      setPayMessage("❌ " + data.error);
+    }
+  } catch (e) {
+    setPayMessage("❌ Error: " + e.message);
+  }
+  setPaying(false);
+}} style={{ width: "100%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 12, padding: "14px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 15, opacity: paying ? 0.7 : 1, marginBottom: 10 }}>
+  {paying ? "Processing..." : "Pay Now →"}
+</button>
 
-      <button onClick={() => { setPaymentItem(null); setPayMessage(""); setPhone(""); }} style={{ width: "100%", background: "transparent", border: "none", padding: "10px", color: t.textMuted, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
-        Cancel
-      </button>
+<button onClick={() => { setPaymentItem(null); setPayMessage(""); setPhone(""); }} style={{ width: "100%", background: "transparent", border: "none", padding: "10px", color: t.textMuted, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+  Cancel
+</button>
     </div>
   </div>
 )}
