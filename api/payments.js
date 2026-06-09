@@ -1,14 +1,13 @@
-const { Paynow } = require("paynow");
+import { Paynow } from "paynow";
 
 const paynow = new Paynow("25025", process.env.PAYNOW_KEY);
 paynow.resultUrl = "https://rif-app.vercel.app/api/payment";
 paynow.returnUrl = "https://rif-app.vercel.app";
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method === "GET") {
     return res.status(200).json({ status: "ok" });
   }
-
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -45,4 +44,4 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
-};
+}
