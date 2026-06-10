@@ -499,7 +499,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout 
       </div>
 
       <div style={{ flex: 1, overflow: "auto", background: t.bg }}>
-        {screen === "Dashboard" && <DashboardView t={t} user={user} />}
+        {screen === "Dashboard" && <DashboardView t={t} user={user} setScreen={setScreen} />}
         {screen === "Syllabus" && <SyllabusView t={t} user={user} />}
         {screen === "Library" && <LibraryView t={t} />}
         {screen === "Chat" && <ChatView t={t} user={user} />}
@@ -510,23 +510,75 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout 
   );
 }
 
-function DashboardView({ t, user }) {
+function DashboardView({ t, user, setScreen }) {
   const name = user?.user_metadata?.full_name?.split(" ")[0] || "Student";
+  const [progress, setProgress] = useState([]);
+  const [totalTopics, setTotalTopics] = useState(0);
+  const [doneTopics, setDoneTopics] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) loadDashboard();
+  }, [user]);
+
+  async function loadDashboard() {
+    const { data: prog } = await supabase
+      .from("student_progress")
+      .select("*, syllabus_topics(subject, curriculum, level)")
+      .eq("user_id", user.id);
+
+    const { data: topics } = await supabase
+      .from("syllabus_topics")
+      .select("id, subject, curriculum, level");
+
+    if (prog && topics) {
+      setTotalTopics(topics.length);
+      const done = prog.filter(p => p.status === "done").length;
+      setDoneTopics(done);
+
+      const subjectMap = {};
+      topics.forEach(t => {
+        const key = `${t.subject} (${t.curriculum} ${t.level})`;
+        if (!subjectMap[key]) subjectMap[key] = { total: 0, done: 0, subject: t.subject, curriculum: t.curriculum, level: t.level };
+        subjectMap[key].total++;
+      });
+
+      prog.forEach(p => {
+        if (p.syllabus_topics) {
+          const key = `${p.syllabus_topics.subject} (${p.syllabus_topics.curriculum} ${p.syllabus_topics.level})`;
+          if (subjectMap[key] && p.status === "done") subjectMap[key].done++;
+        }
+      });
+
+      const subjectList = Object.entries(subjectMap)
+        .filter(([, v]) => v.done > 0)
+        .map(([key, v]) => ({ key, ...v, percent: Math.round(v.done / v.total * 100) }))
+        .sort((a, b) => b.percent - a.percent)
+        .slice(0, 5);
+
+      setProgress(subjectList);
+    }
+    setLoading(false);
+  }
+
+  const overallPercent = totalTopics > 0 ? Math.round(doneTopics / totalTopics * 100) : 0;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 900 }}>
+    <div style={{ padding: "32px 36px", maxWidth: 900, background: t.bg, minHeight: "100vh" }}>
       <div style={{ marginBottom: 32 }}>
-        <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, fontSize: 14, marginBottom: 6 }}>Good morning 👋</div>
+        <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, fontSize: 14, marginBottom: 6 }}>{greeting} 👋</div>
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 30, color: t.text }}>{name}'s Dashboard</h1>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
         {[
-          { label: "Overall Progress", value: "56%", sub: "Across 4 subjects", color: "#1A4DB3" },
-          { label: "Topics Completed", value: "21/39", sub: "Keep pushing!", color: "#C9A84C" },
-          { label: "Study Streak", value: "12 days", sub: "Personal best 🔥", color: "#1A7A4A" },
+          { label: "Overall Progress", value: `${overallPercent}%`, sub: "Across all subjects", color: "#1A4DB3" },
+          { label: "Topics Completed", value: `${doneTopics}/${totalTopics}`, sub: doneTopics > 0 ? "Keep pushing!" : "Start studying!", color: "#C9A84C" },
+          { label: "Subjects Active", value: `${progress.length}`, sub: "Subjects in progress", color: "#1A7A4A" },
         ].map(stat => (
-          <div key={stat.label} className="hover-lift" style={{ background: t.card, border: `1px solid ${t.cardBorder}`, borderRadius: 14, padding: "22px 20px", borderTop: `3px solid ${stat.color}` }}>
+          <div key={stat.label} style={{ background: t.card, borderRadius: 14, padding: "22px 20px", borderTopWidth: 3, borderTopStyle: "solid", borderTopColor: stat.color }}>
             <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginBottom: 8 }}>{stat.label}</div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: t.text }}>{stat.value}</div>
             <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: stat.color, marginTop: 4 }}>{stat.sub}</div>
@@ -534,39 +586,46 @@ function DashboardView({ t, user }) {
         ))}
       </div>
 
-      <div style={{ background: t.card, border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: "24px", marginBottom: 24 }}>
+      <div style={{ background: t.card, borderRadius: 16, padding: "24px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text }}>Subject Progress</h2>
-          <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#C9A84C", cursor: "pointer" }}>View All →</span>
+          <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#C9A84C" }}>Top subjects</span>
         </div>
-        {subjects.map(sub => (
-          <div key={sub.name} style={{ marginBottom: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, fontWeight: 600, color: t.text }}>{sub.name}</span>
-              <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>{sub.done}/{sub.chapters} topics</span>
-            </div>
-            <div style={{ background: t.bg, borderRadius: 99, height: 8, overflow: "hidden" }}>
-              <div className="progress-fill" style={{ width: `${sub.progress}%`, background: sub.color }} />
-            </div>
-            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: sub.color, marginTop: 4 }}>{sub.progress}% complete</div>
+        {loading ? (
+          <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, fontSize: 14 }}>Loading progress...</div>
+        ) : progress.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "24px 0" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📚</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted }}>No progress yet — go to Syllabus to start tracking!</div>
           </div>
-        ))}
+        ) : (
+          progress.map(sub => (
+            <div key={sub.key} style={{ marginBottom: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, fontWeight: 600, color: t.text }}>{sub.subject}</span>
+                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>{sub.done}/{sub.total} topics · {sub.curriculum} {sub.level}</span>
+              </div>
+              <div style={{ background: t.bg, borderRadius: 99, height: 8, overflow: "hidden" }}>
+                <div style={{ width: `${sub.percent}%`, height: "100%", background: "#1A4DB3", borderRadius: 99, transition: "width 0.5s" }} />
+              </div>
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: "#1A4DB3", marginTop: 4 }}>{sub.percent}% complete</div>
+            </div>
+          ))
+        )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <div style={{ background: t.card, border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 24 }}>
-          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: t.text, marginBottom: 16 }}>Up Next</h3>
+        <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: t.text, marginBottom: 16 }}>Quick Actions</h3>
           {[
-            { subj: "Mathematics", topic: "Quadratic Equations", time: "Today" },
-            { subj: "Physics", topic: "Newton's Laws", time: "Tomorrow" },
-            { subj: "Chemistry", topic: "Organic Chemistry", time: "Thu" },
+            { label: "Continue Syllabus", icon: "✓", screen: "Syllabus" },
+            { label: "Take a Test", icon: "📝", screen: "Tests" },
+            { label: "Study Chat", icon: "💬", screen: "Chat" },
+            { label: "Library", icon: "📚", screen: "Library" },
           ].map(item => (
-            <div key={item.topic} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${t.cardBorder}` }}>
-              <div>
-                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, fontWeight: 600, color: t.text }}>{item.topic}</div>
-                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>{item.subj}</div>
-              </div>
-              <span style={{ background: t.badge, color: t.badgeText, borderRadius: 6, padding: "3px 10px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, fontWeight: 600 }}>{item.time}</span>
+            <div key={item.label} onClick={() => setScreen(item.screen)} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: t.bg, cursor: "pointer" }}>
+              <span style={{ fontSize: 18 }}>{item.icon}</span>
+              <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, fontWeight: 600 }}>{item.label}</span>
             </div>
           ))}
         </div>
@@ -574,10 +633,10 @@ function DashboardView({ t, user }) {
         <div style={{ background: "linear-gradient(135deg, #0D2B6B, #1A4DB3)", borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div>
             <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>Ready to test yourself?</div>
-            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#F4F6FB", lineHeight: 1.3 }}>Mathematics<br />Practice Test</h3>
-            <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#A0AECB", marginTop: 8 }}>20 questions · 45 minutes · Supervised</p>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#F4F6FB", lineHeight: 1.3 }}>Practice Tests</h3>
+            <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#A0AECB", marginTop: 8 }}>ZIMSEC & Cambridge · Anti-cheat · Instant results</p>
           </div>
-          <button className="gold-btn" style={{ borderRadius: 10, padding: "12px", fontSize: 14, marginTop: 20 }}>Start Test →</button>
+          <button className="gold-btn" onClick={() => setScreen("Tests")} style={{ borderRadius: 10, padding: "12px", fontSize: 14, marginTop: 20 }}>Start Test →</button>
         </div>
       </div>
     </div>
