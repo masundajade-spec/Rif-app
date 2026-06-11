@@ -185,6 +185,7 @@ const navItems = [
   { id: "Dashboard", icon: "⊞", label: "Dashboard" },
   { id: "Syllabus", icon: "✓", label: "Syllabus" },
   { id: "Library", icon: "▤", label: "Library" },
+  { id: "Notes", icon: "📖", label: "Notes" },
   { id: "Chat", icon: "💬", label: "Chat" },
   { id: "Tests", icon: "📝", label: "Tests" },
   { id: "Teacher", icon: "◎", label: "Teacher" },
@@ -246,8 +247,10 @@ export default function App() {
 
       {screen === "Landing" && <LandingScreen t={t} isDark={isDark} setIsDark={setIsDark} setScreen={setScreen} />}
       {screen === "Login" && <AuthScreen t={t} mode="login" setScreen={setScreen} />}
+      {screen === "Terms" && <TermsScreen t={t} setScreen={setScreen} />}
+      {screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
-      {["Dashboard", "Syllabus", "Library", "Chat", "Tests", "Teacher"].includes(screen) && (
+      {["Dashboard", "Syllabus", "Library", "Notes", "Chat", "Tests", "Teacher"].includes(screen) && (
         <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} />
       )}
     </div>
@@ -295,6 +298,16 @@ function LandingScreen({ t, isDark, setIsDark, setScreen }) {
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#6B7A99", marginTop: 4 }}>{label}</div>
             </div>
           ))}
+       </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ textAlign: "center", padding: "32px", borderTop: "1px solid #FFFFFF0F", marginTop: 40 }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
+          <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#6B7A99" }}>© 2026 RIF-App. All rights reserved.</span>
+          <span onClick={() => setScreen("Terms")} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#C9A84C", cursor: "pointer" }}>Terms & Conditions</span>
+          <span onClick={() => setScreen("Privacy")} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#C9A84C", cursor: "pointer" }}>Privacy Policy</span>
+          <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#6B7A99" }}>Not affiliated with ZIMSEC or Cambridge Assessment</span>
         </div>
       </div>
     </div>
@@ -504,6 +517,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout 
         {screen === "Library" && <LibraryView t={t} />}
         {screen === "Chat" && <ChatView t={t} user={user} />}
         {screen === "Tests" && <TestView t={t} user={user} />}
+        {screen === "Notes" && <NotesView t={t} user={user} />}
         {screen === "Teacher" && <TeacherView t={t} />}
       </div>
     </div>
@@ -958,7 +972,12 @@ function LibraryView({ t }) {
   try {
     const res = await fetch("https://rif-app.vercel.app/api/payment", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+  "Content-Type": "application/json",
+  "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
+  "anthropic-version": "2023-06-01",
+  "anthropic-dangerous-direct-browser-access": "true",
+},
       body: JSON.stringify({
         phone,
         amount: paymentItem.price,
@@ -1360,6 +1379,262 @@ function ChatView({ t, user }) {
           <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Choose a subject from the left</div>
         </div>
       )}
+    </div>
+  );
+}
+function NotesView({ t, user }) {
+  const [subject, setSubject] = useState(null);
+  const [topic, setTopic] = useState(null);
+  const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [topics, setTopics] = useState([]);
+  const [filter, setFilter] = useState("ZIMSEC");
+  const [level, setLevel] = useState("O-Level");
+  const [subjects, setSubjects] = useState([]);
+
+  useEffect(() => {
+    loadSubjects();
+  }, [filter, level]);
+
+  useEffect(() => {
+    if (subject) loadTopics(subject);
+  }, [subject]);
+
+  async function loadSubjects() {
+    const { data } = await supabase
+      .from("syllabus_topics")
+      .select("subject")
+      .eq("curriculum", filter)
+      .eq("level", level);
+    if (data) {
+      const unique = [...new Set(data.map(d => d.subject))];
+      setSubjects(unique);
+      setSubject(unique[0] || null);
+      setTopic(null);
+      setNotes("");
+    }
+  }
+
+  async function loadTopics(subj) {
+    const { data } = await supabase
+      .from("syllabus_topics")
+      .select("*")
+      .eq("subject", subj)
+      .eq("curriculum", filter)
+      .eq("level", level)
+      .order("topic_order", { ascending: true });
+    if (data) setTopics(data);
+  }
+
+  async function generateNotes(topicName) {
+    setTopic(topicName);
+    setNotes("");
+    setLoading(true);
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { 
+  "Content-Type": "application/json",
+  "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
+  "anthropic-version": "2023-06-01",
+  "anthropic-dangerous-direct-browser-access": "true",
+},
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{
+            role: "user",
+            content: `You are an expert ${filter} ${level} teacher in Zimbabwe. Write clear, detailed study notes for the topic "${topicName}" in the subject "${subject}" for ${filter} ${level} students in Zimbabwe. 
+
+Format your response with:
+## Key Concepts
+(3-5 main concepts explained clearly)
+
+## Detailed Explanation
+(thorough explanation students can understand)
+
+## Examples
+(2-3 worked examples or illustrations)
+
+## Exam Tips
+(3 specific tips for ${filter} ${level} exams)
+
+## Summary
+(5 bullet points summarizing the topic)
+
+Keep it relevant to the Zimbabwe ${filter} curriculum and exam style.`,
+          }],
+        }),
+      });
+      const data = await response.json();
+      if (data.content && data.content[0]) {
+        setNotes(data.content[0].text);
+      } else {
+        setNotes("Failed to generate notes: " + JSON.stringify(data));
+      }
+    } catch (e) {
+      setNotes("Error generating notes: " + e.message);
+    }
+    setLoading(false);
+  }
+
+  function formatNotes(text) {
+    return text.split("\n").map((line, i) => {
+      if (line.startsWith("## ")) {
+        return <div key={i} style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: t.text, marginTop: 20, marginBottom: 8 }}>{line.replace("## ", "")}</div>;
+      } else if (line.startsWith("- ") || line.startsWith("• ")) {
+        return <div key={i} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, marginBottom: 6, paddingLeft: 16, display: "flex", gap: 8 }}><span style={{ color: "#C9A84C", flexShrink: 0 }}>•</span><span>{line.replace("- ", "").replace("• ", "")}</span></div>;
+      } else if (line.startsWith("**") && line.endsWith("**")) {
+        return <div key={i} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, fontWeight: 700, marginBottom: 6 }}>{line.replace(/\*\*/g, "")}</div>;
+      } else if (line.trim() === "") {
+        return <div key={i} style={{ height: 8 }} />;
+      } else {
+        return <div key={i} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, lineHeight: 1.7, marginBottom: 4 }}>{line}</div>;
+      }
+    });
+  }
+
+  return (
+    <div style={{ display: "flex", height: "100vh", background: t.bg }}>
+      {/* Sidebar */}
+      <div style={{ width: 260, background: t.card, borderRightWidth: 1, borderRightStyle: "solid", borderRightColor: t.cardBorder, overflowY: "auto", flexShrink: 0 }}>
+        <div style={{ padding: "20px 16px", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, fontWeight: 700, marginBottom: 12 }}>📖 Study Notes</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+            {["ZIMSEC", "Cambridge"].map(c => (
+              <button key={c} onClick={() => { setFilter(c); setSubject(null); setNotes(""); }} style={{ padding: "4px 12px", borderRadius: 99, background: filter === c ? "#C9A84C" : t.bg, borderWidth: 1, borderStyle: "solid", borderColor: filter === c ? "#C9A84C" : t.cardBorder, color: filter === c ? "#0A1628" : t.textMuted, fontSize: 12, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif" }}>{c}</button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {["O-Level", "A-Level"].map(l => (
+              <button key={l} onClick={() => { setLevel(l); setSubject(null); setNotes(""); }} style={{ padding: "4px 12px", borderRadius: 99, background: level === l ? "#1A4DB3" : t.bg, borderWidth: 1, borderStyle: "solid", borderColor: level === l ? "#1A4DB3" : t.cardBorder, color: level === l ? "#fff" : t.textMuted, fontSize: 12, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif" }}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Subjects */}
+        <div style={{ padding: 8 }}>
+          {subjects.map(s => (
+            <div key={s} onClick={() => { setSubject(s); setNotes(""); setTopic(null); }} style={{ padding: "10px 12px", borderRadius: 8, marginBottom: 2, cursor: "pointer", background: subject === s ? "#1A4DB322" : "transparent", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, fontWeight: subject === s ? 700 : 400, color: subject === s ? "#1A4DB3" : t.text }}>
+              {s}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Topics list */}
+      {subject && (
+        <div style={{ width: 220, background: t.bg, borderRightWidth: 1, borderRightStyle: "solid", borderRightColor: t.cardBorder, overflowY: "auto", flexShrink: 0 }}>
+          <div style={{ padding: "16px 14px", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder }}>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, fontWeight: 700, color: t.text }}>{subject}</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted }}>{topics.length} topics</div>
+          </div>
+          <div style={{ padding: 8 }}>
+            {topics.map(tp => (
+              <div key={tp.id} onClick={() => generateNotes(tp.topic_name)} style={{ padding: "10px 12px", borderRadius: 8, marginBottom: 2, cursor: "pointer", background: topic === tp.topic_name ? "#C9A84C22" : "transparent", borderLeftWidth: topic === tp.topic_name ? 3 : 0, borderLeftStyle: "solid", borderLeftColor: "#C9A84C" }}>
+                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: topic === tp.topic_name ? "#C9A84C" : t.text, fontWeight: topic === tp.topic_name ? 700 : 400 }}>
+                  {tp.topic_order}. {tp.topic_name}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Notes content */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "32px 36px" }}>
+        {!topic && !loading && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: 16 }}>
+            <div style={{ fontSize: 64 }}>📖</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: t.text, fontWeight: 700 }}>Select a Topic</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, textAlign: "center" }}>Choose a subject and topic from the left to generate AI study notes instantly</div>
+          </div>
+        )}
+
+        {loading && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: 16 }}>
+            <div style={{ fontSize: 48 }}>✨</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: t.text }}>Generating Notes...</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>AI is writing your study notes for {topic}</div>
+          </div>
+        )}
+
+        {notes && !loading && (
+          <div style={{ maxWidth: 720 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+              <div>
+                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: "#C9A84C", fontWeight: 600, marginBottom: 4 }}>{filter} {level} · {subject}</div>
+                <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, color: t.text, fontWeight: 700 }}>{topic}</h1>
+              </div>
+              <button onClick={() => generateNotes(topic)} style={{ background: t.card, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 8, padding: "8px 16px", color: t.text, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
+                🔄 Regenerate
+              </button>
+            </div>
+            <div style={{ background: t.card, borderRadius: 16, padding: "28px 32px", lineHeight: 1.8 }}>
+              {formatNotes(notes)}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+function TermsScreen({ t, setScreen }) {
+  return (
+    <div style={{ minHeight: "100vh", background: "#0A1628", padding: "40px 32px" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+        <button onClick={() => setScreen("Landing")} style={{ background: "transparent", border: "none", color: "#C9A84C", cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, marginBottom: 24 }}>← Back to Home</button>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#F4F6FB", marginBottom: 8 }}>Terms & Conditions</h1>
+        <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#6B7A99", marginBottom: 32 }}>Last updated: June 2026</p>
+
+        {[
+          ["1. Acceptance of Terms", "By accessing and using RIF-App, you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our platform."],
+          ["2. Description of Service", "RIF-App is an educational technology platform designed for Zimbabwean students following ZIMSEC and Cambridge curricula. We provide study tools, practice tests, chat rooms, and educational resources."],
+          ["3. User Accounts", "You must provide accurate information when creating an account. You are responsible for maintaining the confidentiality of your account credentials. You must be at least 13 years old to use this service."],
+          ["4. Subscriptions and Payments", "Some features require a paid subscription. Payments are processed through Paynow Zimbabwe. Subscription fees are charged monthly. You may cancel your subscription at any time."],
+          ["5. Acceptable Use", "You agree not to misuse the platform, share account credentials, attempt to cheat on supervised tests, harass other users in chat rooms, or reproduce our content without permission."],
+          ["6. Intellectual Property", "All content on RIF-App including notes, tests, and materials is owned by RIF-App or its content providers. RIF-App is not affiliated with ZIMSEC or Cambridge Assessment International Education."],
+          ["7. Privacy", "Your use of RIF-App is also governed by our Privacy Policy. We collect and process your data in accordance with Zimbabwe's Data Protection Act."],
+          ["8. Limitation of Liability", "RIF-App provides educational content for study purposes only. We do not guarantee specific exam results. Our liability is limited to the amount paid for our services."],
+          ["9. Changes to Terms", "We reserve the right to modify these terms at any time. Continued use of the platform after changes constitutes acceptance of the new terms."],
+          ["10. Contact", "For any questions about these terms, contact us at support@rif-app.com"],
+        ].map(([title, content]) => (
+          <div key={title} style={{ marginBottom: 28 }}>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#C9A84C", marginBottom: 8 }}>{title}</h3>
+            <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: "#A0AECB", lineHeight: 1.7 }}>{content}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PrivacyScreen({ t, setScreen }) {
+  return (
+    <div style={{ minHeight: "100vh", background: "#0A1628", padding: "40px 32px" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+        <button onClick={() => setScreen("Landing")} style={{ background: "transparent", border: "none", color: "#C9A84C", cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, marginBottom: 24 }}>← Back to Home</button>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#F4F6FB", marginBottom: 8 }}>Privacy Policy</h1>
+        <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#6B7A99", marginBottom: 32 }}>Last updated: June 2026</p>
+
+        {[
+          ["1. Information We Collect", "We collect information you provide when creating an account including your name, email address, curriculum and subject preferences. We also collect usage data such as topics studied, test scores, and chat messages."],
+          ["2. How We Use Your Information", "We use your information to provide and improve our educational services, personalize your learning experience, process payments, send important updates about your account, and analyze platform usage to improve our service."],
+          ["3. Data Storage", "Your data is stored securely using Supabase, a secure cloud database provider. We implement industry standard security measures to protect your personal information."],
+          ["4. Data Sharing", "We do not sell your personal information to third parties. We may share data with payment processors (Paynow Zimbabwe) to process transactions, and with service providers who help us operate the platform."],
+          ["5. Student Data Protection", "We take the protection of student data seriously. We comply with Zimbabwe's Data Protection Act. Parents or guardians of users under 18 may request access to or deletion of their child's data."],
+          ["6. Cookies", "We use essential cookies to maintain your login session and remember your preferences. We do not use advertising cookies or track you across other websites."],
+          ["7. Your Rights", "You have the right to access your personal data, correct inaccurate data, request deletion of your data, and opt out of non-essential communications. Contact us at support@rif-app.com to exercise these rights."],
+          ["8. Children's Privacy", "RIF-App is designed for students aged 13 and above. We do not knowingly collect personal information from children under 13. If you believe we have collected data from a child under 13 please contact us immediately."],
+          ["9. Changes to Privacy Policy", "We may update this Privacy Policy from time to time. We will notify users of significant changes via email or through the platform."],
+          ["10. Contact Us", "If you have questions about this Privacy Policy or how we handle your data, contact us at support@rif-app.com or through our platform's support chat."],
+        ].map(([title, content]) => (
+          <div key={title} style={{ marginBottom: 28 }}>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#C9A84C", marginBottom: 8 }}>{title}</h3>
+            <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: "#A0AECB", lineHeight: 1.7 }}>{content}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
