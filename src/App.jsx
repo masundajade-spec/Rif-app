@@ -197,7 +197,14 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const t = isDark ? theme.dark : theme.light;
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -251,7 +258,7 @@ export default function App() {
       {screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
       {["Dashboard", "Syllabus", "Library", "Notes", "Chat", "Tests", "Teacher"].includes(screen) && (
-        <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} />
+      <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} isMobile={isMobile} />
       )}
     </div>
   );
@@ -466,7 +473,7 @@ function AuthScreen({ t, mode, setScreen }) {
   );
 }
 
-function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout }) {
+function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout, isMobile }) {
   const initials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name.split(" ").map(n => n[0]).join("").toUpperCase()
     : "U";
@@ -474,7 +481,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout 
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
-      <div style={{ width: 220, background: t.sidebar, display: "flex", flexDirection: "column", padding: "24px 0", position: "sticky", top: 0, height: "100vh" }}>
+      <div style={{ width: isMobile ? "100%" : 220, background: t.sidebar, display: isMobile ? "none" : "flex", flexDirection: "column", padding: "24px 0", position: "sticky", top: 0, height: "100vh" }}>
         <div style={{ padding: "0 20px 28px", borderBottom: "1px solid #FFFFFF0A" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #C9A84C, #E8CC80)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 16, color: "#0A1628" }}>R1</div>
@@ -511,20 +518,45 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout 
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: "auto", background: t.bg }}>
-        {screen === "Dashboard" && <DashboardView t={t} user={user} setScreen={setScreen} />}
-        {screen === "Syllabus" && <SyllabusView t={t} user={user} />}
-        {screen === "Library" && <LibraryView t={t} />}
-        {screen === "Chat" && <ChatView t={t} user={user} />}
-        {screen === "Tests" && <TestView t={t} user={user} />}
-        {screen === "Notes" && <NotesView t={t} user={user} />}
-        {screen === "Teacher" && <TeacherView t={t} />}
+     <div style={{ flex: 1, overflow: "auto", background: t.bg, paddingBottom: isMobile ? 70 : 0 }}>
+        {screen === "Dashboard" && <DashboardView t={t} user={user} setScreen={setScreen} isMobile={isMobile} />}
+        {screen === "Syllabus" && <SyllabusView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Library" && <LibraryView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Chat" && <ChatView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Tests" && <TestView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Notes" && <NotesView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Teacher" && <TeacherView t={t} isMobile={isMobile} />}
       </div>
+     {isMobile && (
+  <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: t.sidebar, zIndex: 100, borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#FFFFFF11" }}>
+    <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", padding: "10px 0" }}>
+      {navItems.map(item => (
+        <div key={item.id} onClick={() => setScreen(item.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "4px 8px", cursor: "pointer", flex: 1 }}>
+          <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
+          <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: screen === item.id ? "#C9A84C" : "#A0AECB", fontWeight: screen === item.id ? 700 : 400 }}>{item.label}</span>
+        </div>
+      ))}
+    </div>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 16px", borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#FFFFFF11" }}>
+      <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#A0AECB" }}>
+        {user?.user_metadata?.full_name || user?.email}
+      </span>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={() => setIsDark(!isDark)} style={{ background: "#FFFFFF15", border: "none", borderRadius: 6, padding: "4px 10px", color: "#F4F6FB", cursor: "pointer", fontSize: 12 }}>
+          {isDark ? "☀️" : "🌙"}
+        </button>
+        <button onClick={handleLogout} style={{ background: "#F4433622", border: "none", borderRadius: 6, padding: "4px 10px", color: "#F44336", cursor: "pointer", fontSize: 12 }}>
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
 
-function DashboardView({ t, user, setScreen }) {
+function DashboardView({ t, user, setScreen, isMobile }) {
   const name = user?.user_metadata?.full_name?.split(" ")[0] || "Student";
   const [progress, setProgress] = useState([]);
   const [totalTopics, setTotalTopics] = useState(0);
@@ -580,13 +612,13 @@ function DashboardView({ t, user, setScreen }) {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 900, background: t.bg, minHeight: "100vh" }}>
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 900, background: t.bg, minHeight: "100vh" }}>
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, fontSize: 14, marginBottom: 6 }}>{greeting} 👋</div>
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 30, color: t.text }}>{name}'s Dashboard</h1>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
         {[
           { label: "Overall Progress", value: `${overallPercent}%`, sub: "Across all subjects", color: "#1A4DB3" },
           { label: "Topics Completed", value: `${doneTopics}/${totalTopics}`, sub: doneTopics > 0 ? "Keep pushing!" : "Start studying!", color: "#C9A84C" },
@@ -628,7 +660,7 @@ function DashboardView({ t, user, setScreen }) {
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
         <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
           <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: t.text, marginBottom: 16 }}>Quick Actions</h3>
           {[
@@ -657,7 +689,7 @@ function DashboardView({ t, user, setScreen }) {
   );
 }
 
-function SyllabusView({ t, user }) {
+function SyllabusView({ t, user, isMobile }) {
   const [subjects, setSubjects] = useState([]);
   const [activeSubject, setActiveSubject] = useState(null);
   const [topics, setTopics] = useState([]);
@@ -674,16 +706,21 @@ function SyllabusView({ t, user }) {
     if (activeSubject) loadTopics(activeSubject);
   }, [activeSubject]);
 
-  async function loadSubjects() {
-    const { data } = await supabase
-      .from("syllabus_topics")
-      .select("subject, curriculum, level")
-      .eq("curriculum", filter)
-      .eq("level", level);
-    if (data) {
-      const unique = [...new Set(data.map(d => d.subject))];
-      setSubjects(unique);
-      if (unique.length > 0) setActiveSubject(unique[0]);
+ async function loadSubjects() {
+    try {
+      const { data, error } = await supabase
+        .from("syllabus_topics")
+        .select("subject, curriculum, level")
+        .eq("curriculum", filter)
+        .eq("level", level);
+      if (error) console.log("Syllabus error:", error);
+      if (data) {
+        const unique = [...new Set(data.map(d => d.subject))];
+        setSubjects(unique);
+        if (unique.length > 0) setActiveSubject(unique[0]);
+      }
+    } catch(e) {
+      console.log("loadSubjects error:", e);
     }
     setLoading(false);
   }
@@ -745,7 +782,7 @@ function SyllabusView({ t, user }) {
       </p>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", flexWrap: "wrap" }}>
         {["ZIMSEC", "Cambridge"].map(c => (
           <button key={c} onClick={() => { setFilter(c); setActiveSubject(null); }} style={{
             padding: "7px 18px", borderRadius: 99,
@@ -783,7 +820,7 @@ function SyllabusView({ t, user }) {
       </div>
 
       {activeSubject && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 260px", gap: 20 }}>
           {/* Topics list */}
           <div style={{ background: t.card, borderRadius: 16, overflow: "hidden" }}>
             <div style={{ padding: "20px 24px", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -885,7 +922,7 @@ async function generateHash(fields, integrationKey) {
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
-function LibraryView({ t }) {
+function LibraryView({ t, user, isMobile }) {
   const [tab, setTab] = useState("All");
   const [paymentItem, setPaymentItem] = useState(null);
   const [phone, setPhone] = useState("");
@@ -893,7 +930,7 @@ function LibraryView({ t }) {
   const [paying, setPaying] = useState(false);
   const [payMessage, setPayMessage] = useState("");
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 900 }}>
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 900 }}>
       <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, color: t.text, marginBottom: 6 }}>Book Library</h1>
       <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 28 }}>Curated resources for Cambridge & ZIMSEC</p>
 
@@ -903,7 +940,7 @@ function LibraryView({ t }) {
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 16, marginBottom: 28 }}>
         {books.filter(book => tab === "All" || book.tag === tab).map(book => (
           <div key={book.title} className="hover-lift" style={{ background: t.card, border: `1px solid ${t.cardBorder}`, borderRadius: 16, overflow: "hidden", display: "flex" }}>
             <div style={{ width: 80, background: `linear-gradient(160deg, ${book.color}, ${book.color}88)`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -922,7 +959,7 @@ function LibraryView({ t }) {
         ))}
       </div>
 
-      <div style={{ background: "linear-gradient(135deg, #0D2B6B, #1A4DB3)", borderRadius: 16, padding: "24px 28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ background: "linear-gradient(135deg, #0D2B6B, #1A4DB3)", borderRadius: 16, padding: "24px 28px", display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 16 : 0 }}>
         <div>
           <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#C9A84C", marginBottom: 6 }}>📚 ALL ACCESS PLAN</div>
           <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#F4F6FB" }}>Unlock Every Book</h3>
@@ -1016,7 +1053,7 @@ function LibraryView({ t }) {
 
 function TeacherView({ t }) {
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 900 }}>
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 900 }}>
       <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, color: t.text, marginBottom: 6 }}>Teacher Dashboard</h1>
       <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 28 }}>Manage syllabus, students & lessons</p>
 
