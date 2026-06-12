@@ -525,7 +525,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
         {screen === "Chat" && <ChatView t={t} user={user} isMobile={isMobile} />}
         {screen === "Tests" && <TestView t={t} user={user} isMobile={isMobile} />}
         {screen === "Notes" && <NotesView t={t} user={user} isMobile={isMobile} />}
-        {screen === "Teacher" && <TeacherView t={t} isMobile={isMobile} />}
+        {screen === "Teacher" && <TeacherView t={t} user={user} isMobile={isMobile} />}
       </div>
      {isMobile && (
   <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: t.sidebar, zIndex: 100, borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#FFFFFF11" }}>
@@ -1051,64 +1051,349 @@ function LibraryView({ t, user, isMobile }) {
   );
 }
 
-function TeacherView({ t }) {
-  return (
-    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 900 }}>
-      <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, color: t.text, marginBottom: 6 }}>Teacher Dashboard</h1>
-      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 28 }}>Manage syllabus, students & lessons</p>
+function TeacherView({ t, user, isMobile }) {
+  const [tab, setTab] = useState("profile");
+  const [profile, setProfile] = useState(null);
+  const [videos, setVideos] = useState([]);
+  const [earnings, setEarnings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [form, setForm] = useState({
+    full_name: "", subject: "", school: "", bio: "", experience_years: "", rate_per_hour: ""
+  });
+  const [videoForm, setVideoForm] = useState({
+    title: "", description: "", video_url: "", subject: "", curriculum: "ZIMSEC", level: "O-Level", is_free: true, price: 0
+  });
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
-        {[
-          { label: "Active Students", value: "34", icon: "👥", color: "#1A4DB3" },
-          { label: "Topics Covered", value: "18/24", icon: "✅", color: "#1A7A4A" },
-          { label: "Tests This Term", value: "7", icon: "📝", color: "#C9A84C" },
-        ].map(stat => (
-          <div key={stat.label} style={{ background: t.card, border: `1px solid ${t.cardBorder}`, borderRadius: 14, padding: "20px", borderTop: `3px solid ${stat.color}` }}>
-            <div style={{ fontSize: 24, marginBottom: 8 }}>{stat.icon}</div>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: t.text }}>{stat.value}</div>
-            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginTop: 4 }}>{stat.label}</div>
-          </div>
+  useEffect(() => {
+    if (user) loadTeacherData();
+  }, [user]);
+
+ async function loadTeacherData() {
+    console.log("Loading teacher data for user:", user.id);
+    try {
+      const { data } = await supabase
+        .from("teacher_profiles")
+        .select("*")
+        .eq("user_id", user.id);
+      
+      if (data && data.length > 0) {
+        setProfile(data[0]);
+        setForm({
+          full_name: data[0].full_name || "",
+          subject: data[0].subject || "",
+          school: data[0].school || "",
+          bio: data[0].bio || "",
+          experience_years: data[0].experience_years || "",
+          rate_per_hour: data[0].rate_per_hour || ""
+        });
+        loadVideos(data[0].id);
+        loadEarnings(data[0].id);
+      }
+    } catch(e) {
+      console.log("Teacher load error:", e);
+    }
+    setLoading(false);
+  }
+
+  async function loadVideos(teacherId) {
+    const { data } = await supabase
+      .from("teacher_videos")
+      .select("*")
+      .eq("teacher_id", teacherId)
+      .order("created_at", { ascending: false });
+    if (data) setVideos(data);
+  }
+
+  async function loadEarnings(teacherId) {
+    const { data } = await supabase
+      .from("teacher_earnings")
+      .select("*")
+      .eq("teacher_id", teacherId);
+    if (data) setEarnings(data);
+  }
+
+  async function saveProfile() {
+    setSaving(true);
+    setMessage("");
+    if (profile) {
+      await supabase.from("teacher_profiles").update(form).eq("user_id", user.id);
+    } else {
+      await supabase.from("teacher_profiles").insert({ ...form, user_id: user.id });
+    }
+    setMessage("✅ Profile saved successfully!");
+    loadTeacherData();
+    setSaving(false);
+  }
+
+  async function addVideo() {
+    if (!profile) { setMessage("❌ Save your profile first!"); return; }
+    setSaving(true);
+    await supabase.from("teacher_videos").insert({ ...videoForm, teacher_id: profile.id });
+    setMessage("✅ Video added successfully!");
+    setVideoForm({ title: "", description: "", video_url: "", subject: "", curriculum: "ZIMSEC", level: "O-Level", is_free: true, price: 0 });
+    loadVideos(profile.id);
+    setSaving(false);
+  }
+
+  const totalEarnings = earnings.reduce((sum, e) => sum + (e.teacher_payout || 0), 0);
+
+  const tabs = [
+    { id: "profile", label: "👤 Profile" },
+    { id: "videos", label: "🎥 Videos" },
+    { id: "earnings", label: "💰 Earnings" },
+    { id: "advertise", label: "📢 Advertise" },
+  ];
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: t.bg }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Loading...</div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 900, background: t.bg, minHeight: "100vh" }}>
+      <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: isMobile ? 22 : 28, color: t.text, marginBottom: 6 }}>
+        Teacher Dashboard
+      </h1>
+      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24 }}>
+        Manage your profile, videos and earnings
+      </p>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {tabs.map(tb => (
+          <button key={tb.id} onClick={() => setTab(tb.id)} style={{
+            padding: "8px 16px", borderRadius: 99,
+            background: tab === tb.id ? "#C9A84C" : t.card,
+            borderWidth: 1, borderStyle: "solid",
+            borderColor: tab === tb.id ? "#C9A84C" : t.cardBorder,
+            color: tab === tb.id ? "#0A1628" : t.textMuted,
+            fontSize: 13, fontWeight: tab === tb.id ? 700 : 400,
+            cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+          }}>{tb.label}</button>
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <div style={{ background: t.card, border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 24 }}>
-          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 16 }}>Syllabus Control</h3>
-          {[
-            { topic: "Quadratic Equations", action: "Keep", color: "#1A7A4A" },
-            { topic: "Trigonometry", action: "Skip for Exam", color: "#8B3FC8" },
-            { topic: "Matrices", action: "Keep", color: "#1A7A4A" },
-            { topic: "Vectors", action: "Mark Optional", color: "#C9A84C" },
-          ].map(item => (
-            <div key={item.topic} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: `1px solid ${t.cardBorder}` }}>
-              <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text }}>{item.topic}</span>
-              <span style={{ background: `${item.color}22`, color: item.color, borderRadius: 6, padding: "3px 12px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, fontWeight: 600 }}>{item.action}</span>
-            </div>
-          ))}
-          <button className="gold-btn" style={{ width: "100%", borderRadius: 10, padding: "11px", fontSize: 14, marginTop: 16 }}>Edit Syllabus Plan</button>
+      {message && (
+        <div style={{ background: message.includes("✅") ? "#1A7A4A22" : "#F4433622", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: message.includes("✅") ? "#1A7A4A" : "#F44336" }}>
+          {message}
         </div>
+      )}
 
-        <div style={{ background: t.card, border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 24 }}>
-          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 16 }}>Student Overview</h3>
-          {[
-            { name: "Tendai S.", progress: 68, status: "On Track" },
-            { name: "Rudo M.", progress: 45, status: "Needs Help" },
-            { name: "Farai N.", progress: 82, status: "Ahead" },
-            { name: "Chido K.", progress: 30, status: "Behind" },
-          ].map(student => (
-            <div key={student.name} style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, fontWeight: 600, color: t.text }}>{student.name}</span>
-                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: student.status === "Ahead" ? "#1A7A4A" : student.status === "On Track" ? "#1A4DB3" : student.status === "Needs Help" ? "#C9A84C" : "#CC3333" }}>{student.status}</span>
+      {/* Profile Tab */}
+      {tab === "profile" && (
+        <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 20 }}>Your Teacher Profile</h3>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 16 }}>
+            {[
+              { label: "Full Name", key: "full_name", placeholder: "Your full name" },
+              { label: "Main Subject", key: "subject", placeholder: "e.g. Mathematics" },
+              { label: "School", key: "school", placeholder: "Your school name" },
+              { label: "Years Experience", key: "experience_years", placeholder: "e.g. 5" },
+              { label: "Hourly Rate (USD)", key: "rate_per_hour", placeholder: "e.g. 10" },
+            ].map(field => (
+              <div key={field.key}>
+                <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>{field.label}</label>
+                <input
+                  value={form[field.key]}
+                  onChange={e => setForm({ ...form, [field.key]: e.target.value })}
+                  placeholder={field.placeholder}
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}
+                />
               </div>
-              <div style={{ background: t.bg, borderRadius: 99, height: 6, overflow: "hidden" }}>
-                <div className="progress-fill" style={{ width: `${student.progress}%`, background: student.status === "Ahead" ? "#1A7A4A" : student.status === "On Track" ? "#1A4DB3" : student.status === "Needs Help" ? "#C9A84C" : "#CC3333" }} />
-              </div>
-            </div>
-          ))}
-          <button className="gold-btn" style={{ width: "100%", borderRadius: 10, padding: "11px", fontSize: 14, marginTop: 8 }}>View All Students</button>
+            ))}
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Bio</label>
+            <textarea
+              value={form.bio}
+              onChange={e => setForm({ ...form, bio: e.target.value })}
+              placeholder="Tell students about yourself, your teaching style and experience..."
+              rows={4}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none", resize: "vertical" }}
+            />
+          </div>
+          <button onClick={saveProfile} disabled={saving} style={{ background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "12px 24px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, opacity: saving ? 0.7 : 1 }}>
+            {saving ? "Saving..." : "Save Profile →"}
+          </button>
         </div>
-      </div>
+      )}
+
+      {/* Videos Tab */}
+      {tab === "videos" && (
+        <div>
+          <div style={{ background: t.card, borderRadius: 16, padding: 24, marginBottom: 20 }}>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 20 }}>Add Video Lesson</h3>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              {[
+                { label: "Video Title", key: "title", placeholder: "e.g. Quadratic Equations Explained" },
+                { label: "Subject", key: "subject", placeholder: "e.g. Mathematics" },
+                { label: "Video URL", key: "video_url", placeholder: "YouTube or Google Drive link" },
+              ].map(field => (
+                <div key={field.key}>
+                  <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>{field.label}</label>
+                  <input
+                    value={videoForm[field.key]}
+                    onChange={e => setVideoForm({ ...videoForm, [field.key]: e.target.value })}
+                    placeholder={field.placeholder}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}
+                  />
+                </div>
+              ))}
+              <div>
+                <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Curriculum</label>
+                <select value={videoForm.curriculum} onChange={e => setVideoForm({ ...videoForm, curriculum: e.target.value })} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}>
+                  <option>ZIMSEC</option>
+                  <option>Cambridge</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Level</label>
+                <select value={videoForm.level} onChange={e => setVideoForm({ ...videoForm, level: e.target.value })} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}>
+                  <option>O-Level</option>
+                  <option>A-Level</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Access</label>
+                <select value={videoForm.is_free} onChange={e => setVideoForm({ ...videoForm, is_free: e.target.value === "true" })} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}>
+                  <option value="true">Free</option>
+                  <option value="false">Paid</option>
+                </select>
+              </div>
+              {!videoForm.is_free && (
+                <div>
+                  <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Price (USD)</label>
+                  <input
+                    value={videoForm.price}
+                    onChange={e => setVideoForm({ ...videoForm, price: e.target.value })}
+                    placeholder="e.g. 2.99"
+                    type="number"
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}
+                  />
+                </div>
+              )}
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Description</label>
+              <textarea
+                value={videoForm.description}
+                onChange={e => setVideoForm({ ...videoForm, description: e.target.value })}
+                placeholder="What will students learn from this video?"
+                rows={3}
+                style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none", resize: "vertical" }}
+              />
+            </div>
+            <button onClick={addVideo} disabled={saving} style={{ background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "12px 24px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+              {saving ? "Adding..." : "Add Video →"}
+            </button>
+          </div>
+
+          {/* Video list */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 16 }}>
+            {videos.length === 0 ? (
+              <div style={{ background: t.card, borderRadius: 16, padding: 24, textAlign: "center", gridColumn: "1/-1" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🎥</div>
+                <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>No videos yet — add your first lesson!</div>
+              </div>
+            ) : videos.map(video => (
+              <div key={video.id} style={{ background: t.card, borderRadius: 16, overflow: "hidden" }}>
+                <div style={{ background: "linear-gradient(135deg, #0D2B6B, #1A4DB3)", padding: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 40 }}>🎥</span>
+                </div>
+                <div style={{ padding: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <h4 style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, color: t.text }}>{video.title}</h4>
+                    <span style={{ background: video.is_free ? "#1A7A4A22" : "#C9A84C22", color: video.is_free ? "#1A7A4A" : "#C9A84C", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontFamily: "'Source Sans 3', sans-serif", fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
+                      {video.is_free ? "FREE" : `$${video.price}`}
+                    </span>
+                  </div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginBottom: 8 }}>{video.subject} · {video.curriculum} {video.level}</div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.text, marginBottom: 12 }}>{video.description}</div>
+                  <a href={video.video_url} target="_blank" rel="noreferrer" style={{ background: "linear-gradient(135deg, #C9A84C, #E8CC80)", borderRadius: 8, padding: "8px 16px", color: "#0A1628", fontWeight: 700, fontSize: 13, textDecoration: "none", fontFamily: "'Source Sans 3', sans-serif" }}>
+                    Watch Video →
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Earnings Tab */}
+      {tab === "earnings" && (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+            {[
+              { label: "Total Earnings", value: `$${totalEarnings.toFixed(2)}`, color: "#1A7A4A" },
+              { label: "Total Students", value: earnings.length, color: "#1A4DB3" },
+              { label: "RIF Commission (15%)", value: `$${(totalEarnings * 0.15).toFixed(2)}`, color: "#C9A84C" },
+            ].map(stat => (
+              <div key={stat.label} style={{ background: t.card, borderRadius: 14, padding: 20, borderTopWidth: 3, borderTopStyle: "solid", borderTopColor: stat.color }}>
+                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginBottom: 8 }}>{stat.label}</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: stat.color }}>{stat.value}</div>
+              </div>
+            ))}
+          </div>
+          {earnings.length === 0 ? (
+            <div style={{ background: t.card, borderRadius: 16, padding: 40, textAlign: "center" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>💰</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 8 }}>No earnings yet</div>
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Add videos and students will start paying for your lessons!</div>
+            </div>
+          ) : (
+            <div style={{ background: t.card, borderRadius: 16, overflow: "hidden" }}>
+              {earnings.map((e, i) => (
+                <div key={e.id} style={{ padding: "14px 20px", borderBottomWidth: i < earnings.length - 1 ? 1 : 0, borderBottomStyle: "solid", borderBottomColor: t.cardBorder, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, fontWeight: 600 }}>Student Payment</div>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>{new Date(e.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: "#1A7A4A" }}>${e.teacher_payout}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Advertise Tab */}
+      {tab === "advertise" && (
+        <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 8 }}>Advertise on RIF-App</h3>
+          <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24, lineHeight: 1.7 }}>
+            Reach thousands of Zimbabwean students directly. Feature your school or teaching services on RIF-App and grow your student base.
+          </p>
+
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+            {[
+              { plan: "Basic", price: "$50/mo", features: ["Featured in subject chat rooms", "Teacher profile badge", "50 student impressions/day"], color: "#1A4DB3" },
+              { plan: "Standard", price: "$100/mo", features: ["Everything in Basic", "Featured on Library page", "School logo on dashboard", "200 student impressions/day"], color: "#C9A84C" },
+              { plan: "Premium", price: "$200/mo", features: ["Everything in Standard", "Homepage featured banner", "Priority placement", "Unlimited impressions", "Monthly analytics report"], color: "#1A7A4A" },
+            ].map(plan => (
+              <div key={plan.plan} style={{ background: t.bg, borderRadius: 14, padding: 20, borderTopWidth: 3, borderTopStyle: "solid", borderTopColor: plan.color }}>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: plan.color, fontWeight: 700, marginBottom: 4 }}>{plan.plan}</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: t.text, fontWeight: 700, marginBottom: 16 }}>{plan.price}</div>
+                {plan.features.map(f => (
+                  <div key={f} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginBottom: 8, display: "flex", gap: 8 }}>
+                    <span style={{ color: plan.color }}>✓</span>{f}
+                  </div>
+                ))}
+               <button onClick={() => window.open(`https://wa.me/263777269039?text=Hi RIF-App, I am interested in the ${plan.plan} advertising package at ${plan.price}`, "_blank")} style={{ width: "100%", marginTop: 16, background: plan.color === "#C9A84C" ? "linear-gradient(135deg, #C9A84C, #E8CC80)" : "transparent", borderWidth: 1, borderStyle: "solid", borderColor: plan.color, borderRadius: 8, padding: "10px", color: plan.color === "#C9A84C" ? "#0A1628" : plan.color, fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
+                  Get Started →
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: "#1A4DB322", borderRadius: 12, padding: 20 }}>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, fontWeight: 600, marginBottom: 8 }}>📧 Contact us to advertise</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>Email us at <span style={{ color: "#C9A84C" }}>advertise@rif-app.com</span> or WhatsApp <span style={{ color: "#C9A84C" }}>+263 77 726 9039</span> to get started with your advertising package.</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
