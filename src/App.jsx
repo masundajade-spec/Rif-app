@@ -189,6 +189,7 @@ const navItems = [
   { id: "Chat", icon: "💬", label: "Chat" },
   { id: "Tests", icon: "📝", label: "Tests" },
   { id: "Teacher", icon: "◎", label: "Teacher" },
+  { id: "Parent", icon: "👨‍👩‍👧", label: "Parent" },
 ];
 
 export default function App() {
@@ -257,7 +258,7 @@ export default function App() {
       {screen === "Terms" && <TermsScreen t={t} setScreen={setScreen} />}
       {screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
-      {["Dashboard", "Syllabus", "Library", "Notes", "Chat", "Tests", "Teacher"].includes(screen) && (
+      {["Dashboard", "Syllabus", "Library", "Notes", "Chat", "Tests", "Teacher", "Parent"].includes(screen) && (
       <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} isMobile={isMobile} />
       )}
     </div>
@@ -526,6 +527,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
         {screen === "Tests" && <TestView t={t} user={user} isMobile={isMobile} />}
         {screen === "Notes" && <NotesView t={t} user={user} isMobile={isMobile} />}
         {screen === "Teacher" && <TeacherView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Parent" && <ParentView t={t} user={user} isMobile={isMobile} />}
       </div>
      {isMobile && (
   <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: t.sidebar, zIndex: 100, borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#FFFFFF11" }}>
@@ -1957,6 +1959,347 @@ function PrivacyScreen({ t, setScreen }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+function ParentView({ t, user, isMobile }) {
+  const [tab, setTab] = useState("overview");
+  const [children, setChildren] = useState([]);
+  const [selectedChild, setSelectedChild] = useState(null);
+  const [childProgress, setChildProgress] = useState([]);
+  const [childTests, setChildTests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [childEmail, setChildEmail] = useState("");
+  const [linking, setLinking] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (user) loadChildren();
+  }, [user]);
+
+  useEffect(() => {
+    if (selectedChild) {
+      loadChildProgress(selectedChild.id);
+      loadChildTests(selectedChild.id);
+    }
+  }, [selectedChild]);
+
+  async function loadChildren() {
+    try {
+      const { data } = await supabase
+        .from("parent_children")
+        .select("*, profiles(id, full_name, curriculum, role)")
+        .eq("parent_id", user.id);
+      if (data && data.length > 0) {
+        setChildren(data);
+        setSelectedChild(data[0].profiles);
+      }
+    } catch(e) {
+      console.log("Load children error:", e);
+    }
+    setLoading(false);
+  }
+
+  async function loadChildProgress(childId) {
+    const { data } = await supabase
+      .from("student_progress")
+      .select("*, syllabus_topics(subject, curriculum, level)")
+      .eq("user_id", childId)
+      .eq("status", "done");
+    if (data) setChildProgress(data);
+  }
+
+  async function loadChildTests(childId) {
+    const { data } = await supabase
+      .from("test_attempts")
+      .select("*, tests(title, subject, curriculum, level)")
+      .eq("user_id", childId)
+      .order("started_at", { ascending: false })
+      .limit(10);
+    if (data) setChildTests(data);
+  }
+
+  async function linkChild() {
+    if (!childEmail.trim()) return;
+    setLinking(true);
+    setMessage("");
+    try {
+      const { data: childProfile } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("id", childEmail.trim())
+        .single();
+
+      if (childProfile) {
+        await supabase.from("parent_children").insert({
+          parent_id: user.id,
+          child_id: childProfile.id,
+        });
+        setMessage("✅ Child linked successfully!");
+        setChildEmail("");
+        loadChildren();
+      } else {
+        setMessage("❌ Student not found. Ask your child for their Student ID.");
+      }
+    } catch(e) {
+      setMessage("❌ Error linking child: " + e.message);
+    }
+    setLinking(false);
+  }
+
+  const subjectMap = {};
+  childProgress.forEach(p => {
+    if (p.syllabus_topics) {
+      const key = p.syllabus_topics.subject;
+      if (!subjectMap[key]) subjectMap[key] = 0;
+      subjectMap[key]++;
+    }
+  });
+
+  const tabs = [
+    { id: "overview", label: "📊 Overview" },
+    { id: "progress", label: "✓ Progress" },
+    { id: "tests", label: "📝 Tests" },
+    { id: "subscribe", label: "💳 Subscribe" },
+    { id: "link", label: "🔗 Link Child" },
+  ];
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: t.bg }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Loading...</div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 900, background: t.bg, minHeight: "100vh" }}>
+      <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: isMobile ? 22 : 28, color: t.text, marginBottom: 6 }}>
+        Parent Dashboard
+      </h1>
+      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24 }}>
+        Monitor your child's learning progress
+      </p>
+
+      {/* Child selector */}
+      {children.length > 0 && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+          {children.map(c => (
+            <button key={c.id} onClick={() => setSelectedChild(c.profiles)} style={{
+              padding: "8px 16px", borderRadius: 99,
+              background: selectedChild?.id === c.profiles?.id ? "#1A4DB3" : t.card,
+              borderWidth: 1, borderStyle: "solid",
+              borderColor: selectedChild?.id === c.profiles?.id ? "#1A4DB3" : t.cardBorder,
+              color: selectedChild?.id === c.profiles?.id ? "#fff" : t.textMuted,
+              fontSize: 13, cursor: "pointer",
+              fontFamily: "'Source Sans 3', sans-serif",
+            }}>👤 {c.profiles?.full_name || "Child"}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {tabs.map(tb => (
+          <button key={tb.id} onClick={() => setTab(tb.id)} style={{
+            padding: "8px 16px", borderRadius: 99,
+            background: tab === tb.id ? "#C9A84C" : t.card,
+            borderWidth: 1, borderStyle: "solid",
+            borderColor: tab === tb.id ? "#C9A84C" : t.cardBorder,
+            color: tab === tb.id ? "#0A1628" : t.textMuted,
+            fontSize: 13, fontWeight: tab === tb.id ? 700 : 400,
+            cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+          }}>{tb.label}</button>
+        ))}
+      </div>
+
+      {message && (
+        <div style={{ background: message.includes("✅") ? "#1A7A4A22" : "#F4433622", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: message.includes("✅") ? "#1A7A4A" : "#F44336" }}>
+          {message}
+        </div>
+      )}
+
+      {/* No children linked yet */}
+      {children.length === 0 && tab !== "link" && (
+        <div style={{ background: t.card, borderRadius: 16, padding: 40, textAlign: "center" }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>👨‍👩‍👧</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: t.text, marginBottom: 8 }}>No children linked yet</div>
+          <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 20 }}>Link your child's account to monitor their progress</div>
+          <button onClick={() => setTab("link")} style={{ background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "12px 24px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+            Link Child Account →
+          </button>
+        </div>
+      )}
+
+      {/* Overview Tab */}
+      {tab === "overview" && selectedChild && (
+        <div>
+          <div style={{ background: t.card, borderRadius: 16, padding: 24, marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, #1A4DB3, #3468D1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 22, fontWeight: 700 }}>
+                {selectedChild.full_name?.charAt(0) || "S"}
+              </div>
+              <div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, fontWeight: 700 }}>{selectedChild.full_name}</div>
+                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>{selectedChild.curriculum} Student</div>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>
+              {[
+                { label: "Topics Done", value: childProgress.length, color: "#1A7A4A" },
+                { label: "Tests Taken", value: childTests.length, color: "#1A4DB3" },
+                { label: "Subjects Active", value: Object.keys(subjectMap).length, color: "#C9A84C" },
+              ].map(stat => (
+                <div key={stat.label} style={{ background: t.bg, borderRadius: 10, padding: 16, textAlign: "center" }}>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: stat.color }}>{stat.value}</div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent test results */}
+          <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 16 }}>Recent Test Results</h3>
+            {childTests.length === 0 ? (
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, textAlign: "center", padding: "20px 0" }}>No tests taken yet</div>
+            ) : childTests.slice(0, 5).map((attempt, i) => {
+              const percent = Math.round(attempt.score / attempt.total_marks * 100);
+              return (
+                <div key={attempt.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottomWidth: i < 4 ? 1 : 0, borderBottomStyle: "solid", borderBottomColor: t.cardBorder }}>
+                  <div>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, fontWeight: 600 }}>{attempt.tests?.title}</div>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>{new Date(attempt.started_at).toLocaleDateString()}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: percent >= 70 ? "#1A7A4A" : percent >= 50 ? "#C9A84C" : "#F44336" }}>{percent}%</div>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted }}>{attempt.score}/{attempt.total_marks}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Progress Tab */}
+      {tab === "progress" && selectedChild && (
+        <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 20 }}>Subject Progress</h3>
+          {Object.keys(subjectMap).length === 0 ? (
+            <div style={{ textAlign: "center", padding: "20px 0", fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>No progress recorded yet</div>
+          ) : Object.entries(subjectMap).map(([subject, done]) => (
+            <div key={subject} style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, fontWeight: 600, color: t.text }}>{subject}</span>
+                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>{done} topics done</span>
+              </div>
+              <div style={{ background: t.bg, borderRadius: 99, height: 8, overflow: "hidden" }}>
+                <div style={{ width: `${Math.min(done * 10, 100)}%`, height: "100%", background: "#1A4DB3", borderRadius: 99 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Tests Tab */}
+      {tab === "tests" && selectedChild && (
+        <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 20 }}>All Test Results</h3>
+          {childTests.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "20px 0", fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>No tests taken yet</div>
+          ) : childTests.map((attempt, i) => {
+            const percent = Math.round(attempt.score / attempt.total_marks * 100);
+            return (
+              <div key={attempt.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottomWidth: i < childTests.length - 1 ? 1 : 0, borderBottomStyle: "solid", borderBottomColor: t.cardBorder }}>
+                <div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, fontWeight: 600 }}>{attempt.tests?.title}</div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>{attempt.tests?.subject} · {new Date(attempt.started_at).toLocaleDateString()}</div>
+                  {attempt.violations > 0 && <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#F44336" }}>⚠️ {attempt.violations} violation(s)</div>}
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: percent >= 70 ? "#1A7A4A" : percent >= 50 ? "#C9A84C" : "#F44336" }}>{percent}%</div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted }}>{attempt.score}/{attempt.total_marks}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+     {tab === "subscribe" && (
+  <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+    <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 8 }}>
+      Subscribe for Your Child
+    </h3>
+    <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24, lineHeight: 1.7 }}>
+      Give your child access to premium study notes, unlimited tests and all learning resources on RIF-App.
+    </p>
+
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+      {[
+       { plan: "O-Level", price: 2.99, color: "#1A4DB3", features: ["ZIMSEC O-Level notes", "Cambridge IGCSE notes", "Unlimited practice tests", "Subject chat rooms", "Syllabus tracker"] },
+       { plan: "A-Level", price: 3.99, color: "#C9A84C", features: ["ZIMSEC A-Level notes", "Cambridge A-Level notes", "Unlimited practice tests", "Subject chat rooms", "Syllabus tracker"] },
+       { plan: "All Access", price: 6.99, color: "#1A7A4A", features: ["O-Level + A-Level", "ZIMSEC + Cambridge", "All notes and tests", "Priority support", "Cancel anytime"] },
+      ].map(plan => (
+        <div key={plan.plan} style={{ background: t.bg, borderRadius: 14, padding: 20, borderTopWidth: 3, borderTopStyle: "solid", borderTopColor: plan.color }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: plan.color, fontWeight: 700, marginBottom: 4 }}>{plan.plan}</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, color: t.text, fontWeight: 700, marginBottom: 16 }}>${plan.price}<span style={{ fontSize: 14, color: t.textMuted }}>/mo</span></div>
+          {plan.features.map(f => (
+            <div key={f} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginBottom: 8, display: "flex", gap: 8 }}>
+              <span style={{ color: plan.color }}>✓</span>{f}
+            </div>
+          ))}
+          <button
+            onClick={() => {
+              if (!selectedChild) { setMessage("❌ Please link your child's account first!"); setTab("link"); return; }
+              setMessage(`✅ Redirecting to payment for ${selectedChild?.full_name}...`);
+              setTimeout(() => setTab("overview"), 2000);
+            }}
+            style={{ width: "100%", marginTop: 16, background: plan.color === "#C9A84C" ? "linear-gradient(135deg, #C9A84C, #E8CC80)" : "transparent", borderWidth: 1, borderStyle: "solid", borderColor: plan.color, borderRadius: 8, padding: "10px", color: plan.color === "#C9A84C" ? "#0A1628" : plan.color, fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}
+          >
+            Subscribe Now →
+          </button>
+        </div>
+      ))}
+    </div>
+
+    <div style={{ background: "#1A4DB322", borderRadius: 12, padding: 16 }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.text, fontWeight: 600, marginBottom: 4 }}>💡 Note</div>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>
+        Payment is processed securely via Paynow Zimbabwe. You can pay using EcoCash, OneMoney, ZimSwitch or bank card. Subscription renews monthly and can be cancelled anytime.
+      </div>
+    </div>
+  </div>
+)}
+      {/* Link Child Tab */}
+      {tab === "link" && (
+        <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 8 }}>Link Your Child's Account</h3>
+          <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 20, lineHeight: 1.7 }}>
+            Ask your child to go to their Dashboard and share their Student ID with you. Enter it below to link their account.
+          </p>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Child's Student ID</label>
+            <input
+              value={childEmail}
+              onChange={e => setChildEmail(e.target.value)}
+              placeholder="Paste your child's Student ID here"
+              style={{ width: "100%", padding: "12px 16px", borderRadius: 10, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}
+            />
+          </div>
+          <button onClick={linkChild} disabled={linking} style={{ background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "12px 24px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, opacity: linking ? 0.7 : 1 }}>
+            {linking ? "Linking..." : "Link Child →"}
+          </button>
+
+          <div style={{ background: "#1A4DB322", borderRadius: 12, padding: 16, marginTop: 20 }}>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.text, fontWeight: 600, marginBottom: 6 }}>How to find Student ID:</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>
+              1. Ask your child to open RIF-App and log in<br/>
+              2. Go to Dashboard<br/>
+              3. Scroll down to find their Student ID<br/>
+              4. They copy and share it with you
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
