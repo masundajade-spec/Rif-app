@@ -512,7 +512,12 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#D0DBF0", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#6B7A99" }}>Student</div>
             </div>
-          </div>
+           </div>
+           <div style={{ padding: "8px 16px", marginBottom: 8 }}>
+           <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: "#FFFFFF33", lineHeight: 1.5, textAlign: "center" }}>
+           Not affiliated with ZIMSEC or Cambridge Assessment
+           </div>
+           </div>
           <button onClick={handleLogout} style={{ width: "100%", background: "#FF000015", border: "1px solid #FF000033", borderRadius: 8, padding: "8px 12px", color: "#FF6666", cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
             Log Out
           </button>
@@ -618,7 +623,12 @@ function DashboardView({ t, user, setScreen, isMobile }) {
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, fontSize: 14, marginBottom: 6 }}>{greeting} 👋</div>
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 30, color: t.text }}>{name}'s Dashboard</h1>
-      </div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.card, borderRadius: 8, padding: "6px 14px", marginTop: 8, cursor: "pointer" }} onClick={() => { navigator.clipboard.writeText(user?.id); alert("Student ID copied!"); }}>
+        <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>Student ID:</span>
+        <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: "#C9A84C", fontWeight: 600 }}>{user?.id?.slice(0, 8)}...</span>
+        <span style={{ fontSize: 12 }}>📋</span>
+        </div>
+        </div>
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
         {[
