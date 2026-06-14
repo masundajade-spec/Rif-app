@@ -261,7 +261,7 @@ export default function App() {
       {screen === "Terms" && <TermsScreen t={t} setScreen={setScreen} />}
       {screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
-      {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin"].includes(screen) && (
+      {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin", "More"].includes(screen) && (
       <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} isMobile={isMobile} />
       )}
     </div>
@@ -552,6 +552,30 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
         {screen === "Notes" && <NotesView t={t} user={user} isMobile={isMobile} />}
         {screen === "Videos" && <VideosView t={t} user={user} isMobile={isMobile} />}
         {screen === "Admin" && user?.id === "b91b35fa-3890-475e-a9fa-e4ffa4edb69a" && <AdminView t={t} user={user} isMobile={isMobile} />}
+        {screen === "More" && (
+  <div style={{ padding: "24px 16px", background: t.bg, minHeight: "100vh" }}>
+    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: t.text, marginBottom: 20 }}>More</h2>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {[
+        { id: "Syllabus", icon: "✓", label: "Syllabus Tracker", desc: "Track your topics" },
+        { id: "Videos", icon: "🎥", label: "Video Lessons", desc: "Watch teacher videos" },
+        { id: "Teacher", icon: "◎", label: "Teacher Dashboard", desc: "Manage your lessons" },
+        { id: "Parent", icon: "👨‍👩‍👧", label: "Parent Dashboard", desc: "Monitor your child" },
+      ].map(item => (
+        <div key={item.id} onClick={() => setScreen(item.id)} style={{ background: t.card, borderRadius: 14, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16, cursor: "pointer" }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: "#1A4DB322", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+            {item.icon}
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 15, fontWeight: 600, color: t.text }}>{item.label}</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>{item.desc}</div>
+          </div>
+          <span style={{ marginLeft: "auto", color: t.textMuted, fontSize: 18 }}>→</span>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
         {screen === "Teacher" && <TeacherView t={t} user={user} isMobile={isMobile} />}
         {screen === "Parent" && <ParentView t={t} user={user} isMobile={isMobile} />}
       </div>
@@ -570,6 +594,10 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
           <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: screen === item.id ? "#C9A84C" : "#A0AECB", fontWeight: screen === item.id ? 700 : 400 }}>{item.label}</span>
         </div>
       ))}
+      <div onClick={() => setScreen("More")} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "4px 8px", cursor: "pointer", flex: 1 }}>
+  <span style={{ fontSize: 18, lineHeight: 1 }}>☰</span>
+  <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: screen === "More" ? "#C9A84C" : "#A0AECB", fontWeight: screen === "More" ? 700 : 400 }}>More</span>
+</div>
       {user?.id === "b91b35fa-3890-475e-a9fa-e4ffa4edb69a" && (
   <div onClick={() => setScreen("Admin")} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 10, marginBottom: 4, background: screen === "Admin" ? "#C9A84C18" : "transparent", cursor: "pointer" }}>
     <span style={{ fontSize: 16 }}>⚙️</span>
