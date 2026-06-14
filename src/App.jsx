@@ -338,6 +338,69 @@ function LandingScreen({ t, isDark, setIsDark, setScreen }) {
     </button>
   </div>
 </div>
+{/* Pricing */}
+<div style={{ maxWidth: 900, margin: "60px auto 0", padding: "0 32px" }}>
+  <div style={{ textAlign: "center", marginBottom: 40 }}>
+    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#F4F6FB", marginBottom: 12 }}>Simple Pricing</h2>
+    <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 16, color: "#A0AECB" }}>No hidden fees. Cancel anytime.</p>
+  </div>
+  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginBottom: 20 }}>
+    {[
+      { plan: "O-Level", price: "$2.99", desc: "Perfect for O-Level students", color: "#1A4DB3", features: ["ZIMSEC & Cambridge O-Level", "AI Study Notes", "Practice Tests", "Subject Chat Rooms", "Syllabus Tracker"] },
+      { plan: "A-Level", price: "$3.99", desc: "For serious A-Level students", color: "#C9A84C", features: ["ZIMSEC & Cambridge A-Level", "AI Study Notes", "Practice Tests", "Subject Chat Rooms", "Syllabus Tracker"], popular: true },
+      { plan: "All Access", price: "$6.99", desc: "Everything unlocked", color: "#1A7A4A", features: ["O-Level + A-Level", "ZIMSEC + Cambridge", "All Notes & Tests", "Teacher Videos", "Priority Support"] },
+    ].map(plan => (
+      <div key={plan.plan} style={{ background: plan.popular ? "linear-gradient(135deg, #1A3A6B, #0D2B6B)" : "#FFFFFF08", borderRadius: 16, padding: 24, borderTopWidth: 3, borderTopStyle: "solid", borderTopColor: plan.color, position: "relative" }}>
+        {plan.popular && (
+          <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", borderRadius: 99, padding: "4px 16px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, fontWeight: 700, color: "#0A1628", whiteSpace: "nowrap" }}>
+            MOST POPULAR
+          </div>
+        )}
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: plan.color, fontWeight: 700, marginBottom: 4 }}>{plan.plan}</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, color: "#F4F6FB", fontWeight: 700, marginBottom: 4 }}>{plan.price}<span style={{ fontSize: 14, color: "#A0AECB" }}>/mo</span></div>
+        <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#A0AECB", marginBottom: 20 }}>{plan.desc}</div>
+        {plan.features.map(f => (
+          <div key={f} style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "flex-start" }}>
+            <span style={{ color: plan.color, flexShrink: 0 }}>✓</span>
+            <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#A0AECB" }}>{f}</span>
+          </div>
+        ))}
+        <button onClick={() => setScreen("Signup")} style={{ width: "100%", marginTop: 20, background: plan.popular ? "linear-gradient(135deg, #C9A84C, #E8CC80)" : "transparent", borderWidth: 1, borderStyle: "solid", borderColor: plan.color, borderRadius: 10, padding: "12px", color: plan.popular ? "#0A1628" : plan.color, fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+          Get Started →
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
+
+{/* FAQ */}
+<div style={{ maxWidth: 720, margin: "60px auto 0", padding: "0 32px" }}>
+  <div style={{ textAlign: "center", marginBottom: 40 }}>
+    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#F4F6FB", marginBottom: 12 }}>Frequently Asked Questions</h2>
+    <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 16, color: "#A0AECB" }}>Everything you need to know</p>
+  </div>
+  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    {[
+      { q: "Is RIF-App free to use?", a: "Yes! You can sign up for free and access basic features. Premium features like AI study notes, unlimited tests and all study materials require a subscription starting at $2.99/mo." },
+      { q: "What curricula does RIF-App cover?", a: "RIF-App covers both ZIMSEC (O-Level and A-Level) and Cambridge (IGCSE and A-Level) curricula with over 140 subjects available." },
+      { q: "How do I pay for a subscription?", a: "We accept EcoCash, OneMoney, ZimSwitch, InnBucks and bank cards through Paynow Zimbabwe. All payments are secure and processed locally." },
+      { q: "Can parents monitor their child's progress?", a: "Yes! Parents can create a Parent account, link their child's account using their Student ID, and monitor their progress, test scores and study activity." },
+      { q: "Are the practice tests supervised?", a: "Yes! Our tests have anti-cheat technology that detects tab switching, copying and right-clicking. 3 violations automatically submit your test." },
+      { q: "Can teachers upload lessons on RIF-App?", a: "Yes! Teachers can create a Teacher profile, upload video lessons and earn money when students access their paid content. RIF-App takes a 15% commission." },
+      { q: "Is my data safe?", a: "Yes! We use Supabase for secure cloud storage and comply with Zimbabwe's Data Protection Act. We never sell your personal data." },
+      { q: "How do I cancel my subscription?", a: "You can cancel anytime from your account settings. Your access continues until the end of the billing period." },
+    ].map((item, i) => (
+      <div key={i} style={{ background: "#FFFFFF08", borderRadius: 12, padding: "18px 20px", borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: "#C9A84C33" }}>
+        <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 15, fontWeight: 700, color: "#F4F6FB", marginBottom: 8 }}>
+          {item.q}
+        </div>
+        <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: "#A0AECB", lineHeight: 1.7 }}>
+          {item.a}
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
       {/* Footer */}
       <div style={{ textAlign: "center", padding: "32px", borderTop: "1px solid #FFFFFF0F", marginTop: 40 }}>
         <div style={{ display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
