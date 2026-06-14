@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
 
-export default function TestView({ t, user }) {
+export default function TestView({ t, user, isMobile }) {
   const [stage, setStage] = useState("list"); // list, instructions, test, results
   const [tests, setTests] = useState([]);
   const [activeTest, setActiveTest] = useState(null);
@@ -137,7 +137,7 @@ export default function TestView({ t, user }) {
 
   // Test list
   if (stage === "list") return (
-    <div style={{ padding: "32px 36px", maxWidth: 900, background: t.bg, minHeight: "100vh" }}>
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 900, background: t.bg, minHeight: "100vh" }}>
       <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, color: t.text, marginBottom: 6 }}>
         Online Tests
       </h1>
@@ -178,7 +178,7 @@ export default function TestView({ t, user }) {
   ))}
 </div>
 
-<div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+<div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 16 }}>
   {tests.filter(test => {
     const matchC = filterC === "All" || test.curriculum === filterC;
     const matchL = filterL === "All" || test.level === filterL;
@@ -278,7 +278,7 @@ export default function TestView({ t, user }) {
       </div>
 
       {/* Questions */}
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 24px" }}>
+      <div style={{ maxWidth: isMobile ? "100%" : 720, margin: "0 auto", padding: isMobile ? "16px" : "32px 24px" }}>
         {questions.map((q, index) => (
           <div key={q.id} style={{ background: t.card, borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginBottom: 8 }}>

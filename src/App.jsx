@@ -317,7 +317,7 @@ function LandingScreen({ t, isDark, setIsDark, setScreen }) {
     <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#F4F6FB", marginBottom: 12 }}>How RIF Works</h2>
     <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 16, color: "#A0AECB" }}>Get started in 3 simple steps</p>
   </div>
-  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, marginBottom: 40 }}>
+  <div style={{ display: "grid", gridTemplateColumns: window.innerWidth < 768 ? "1fr" : "repeat(3, 1fr)", gap: 24, marginBottom: 40 }}>
     {[
       { step: "1", icon: "📝", title: "Sign Up Free", desc: "Create your account and select your curriculum — ZIMSEC or Cambridge, O-Level or A-Level." },
       { step: "2", icon: "📚", title: "Track & Learn", desc: "Follow your syllabus topic by topic, watch teacher videos, read AI notes and join subject chat rooms." },
@@ -344,7 +344,7 @@ function LandingScreen({ t, isDark, setIsDark, setScreen }) {
     <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#F4F6FB", marginBottom: 12 }}>Simple Pricing</h2>
     <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 16, color: "#A0AECB" }}>No hidden fees. Cancel anytime.</p>
   </div>
-  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginBottom: 20 }}>
+  <div style={{ display: "grid", gridTemplateColumns: window.innerWidth < 768 ? "1fr" : "repeat(3, 1fr)", gap: 20, marginBottom: 20 }}>
     {[
       { plan: "O-Level", price: "$2.99", desc: "Perfect for O-Level students", color: "#1A4DB3", features: ["ZIMSEC & Cambridge O-Level", "AI Study Notes", "Practice Tests", "Subject Chat Rooms", "Syllabus Tracker"] },
       { plan: "A-Level", price: "$3.99", desc: "For serious A-Level students", color: "#C9A84C", features: ["ZIMSEC & Cambridge A-Level", "AI Study Notes", "Practice Tests", "Subject Chat Rooms", "Syllabus Tracker"], popular: true },
@@ -1559,7 +1559,7 @@ function TeacherView({ t, user, isMobile }) {
     </div>
   );
 }
-function ChatView({ t, user }) {
+function ChatView({ t, user, isMobile }) {
   const [activeRoom, setActiveRoom] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -1721,9 +1721,12 @@ function ChatView({ t, user }) {
   }
   
  return (
-    <div style={{ display: "flex", height: "100vh", }}>
+    <div style={{ display: "flex", height: "100vh", flexDirection: isMobile ? "column" : "row" }}>
       <div style={{
-        width: 240,
+        width: isMobile ? "100%" : 240,
+        height: isMobile ? activeRoom ? "0" : "100%" : "100%",
+        display: isMobile && activeRoom ? "none" : "flex",
+        flexDirection: "column",
         background: t.card,
         borderRightWidth: 1,
         borderRightStyle: "solid",
@@ -1775,7 +1778,7 @@ function ChatView({ t, user }) {
       </div>
 
       {activeRoom ? (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: t.bg }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: t.bg, height: isMobile ? "calc(100vh - 130px)" : "100vh", overflow: "hidden" }}>
           <div style={{
             padding: "16px 24px",
             background: t.card,
@@ -1786,6 +1789,9 @@ function ChatView({ t, user }) {
             alignItems: "center",
             gap: 12,
           }}>
+            {isMobile && (
+  <div onClick={() => setActiveRoom(null)} style={{ cursor: "pointer", color: "#C9A84C", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, marginRight: 8 }}>← Back</div>
+)}
             <div style={{ width: 12, height: 12, borderRadius: "50%", background: activeRoom.color }} />
             <div>
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, fontWeight: 700 }}>{activeRoom.name}</div>
@@ -1793,7 +1799,7 @@ function ChatView({ t, user }) {
             </div>
           </div>
 
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "12px" : "20px 24px", paddingBottom: isMobile ? "20px" : "20px" }}>
             {messages.length === 0 && (
               <div style={{ textAlign: "center", marginTop: 60, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted }}>
                 No messages yet — start the discussion! 🎓
@@ -1817,11 +1823,9 @@ function ChatView({ t, user }) {
                 </div>
               );
             })}
-          </div>
-
+         </div>
           <div style={{
-            padding: "16px 24px",
-            background: t.card,
+padding: isMobile ? "8px 12px 80px 12px" : "16px 24px",
             borderTopWidth: 1,
             borderTopStyle: "solid",
             borderTopColor: t.cardBorder,
@@ -1857,7 +1861,7 @@ function ChatView({ t, user }) {
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, background: t.bg }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, background: t.bg, padding: "20px", textAlign: "center" }}>
           <div style={{ fontSize: 56 }}>💬</div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: t.text, fontWeight: 700 }}>Select a Chat Room</div>
           <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Choose a subject from the left</div>
