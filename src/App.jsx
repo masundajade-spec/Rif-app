@@ -300,7 +300,7 @@ function LandingScreen({ t, isDark, setIsDark, setScreen }) {
         </p>
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
           <button className="gold-btn" style={{ borderRadius: 10, padding: "14px 32px", fontSize: 16 }} onClick={() => setScreen("Signup")}>Start Free Today →</button>
-          <button className="outline-btn" style={{ border: "1px solid #FFFFFF22", borderRadius: 10, padding: "14px 32px", fontSize: 16, color: "#A0AECB" }}>See How It Works</button>
+          <button className="outline-btn" onClick={() => document.getElementById("how-it-works").scrollIntoView({ behavior: "smooth" })} style={{ border: "1px solid #FFFFFF22", borderRadius: 10, padding: "14px 32px", fontSize: 16, color: "#A0AECB" }}>See How It Works</button>
         </div>
         <div style={{ display: "flex", gap: 0, justifyContent: "center", marginTop: 64, borderTop: "1px solid #FFFFFF0F", paddingTop: 40, flexWrap: "wrap" }}>
           {[["Cambridge & ZIMSEC", "Dual Curriculum"], ["EcoCash + Card", "Local Payments"], ["Anti-Cheat Tech", "Supervised Tests"], ["Teachers + Students", "Both Supported"]].map(([val, label]) => (
@@ -311,7 +311,33 @@ function LandingScreen({ t, isDark, setIsDark, setScreen }) {
           ))}
        </div>
       </div>
-
+{/* How It Works */}
+<div id="how-it-works" style={{ maxWidth: 720, margin: "60px auto 0", padding: "0 32px" }}>
+  <div style={{ textAlign: "center", marginBottom: 40 }}>
+    <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#F4F6FB", marginBottom: 12 }}>How RIF Works</h2>
+    <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 16, color: "#A0AECB" }}>Get started in 3 simple steps</p>
+  </div>
+  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, marginBottom: 40 }}>
+    {[
+      { step: "1", icon: "📝", title: "Sign Up Free", desc: "Create your account and select your curriculum — ZIMSEC or Cambridge, O-Level or A-Level." },
+      { step: "2", icon: "📚", title: "Track & Learn", desc: "Follow your syllabus topic by topic, watch teacher videos, read AI notes and join subject chat rooms." },
+      { step: "3", icon: "🎯", title: "Test Yourself", desc: "Take supervised practice tests with anti-cheat technology and get instant results with your score." },
+    ].map(item => (
+      <div key={item.step} style={{ textAlign: "center", padding: 20 }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 24 }}>
+          {item.icon}
+        </div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#F4F6FB", marginBottom: 8, fontWeight: 700 }}>{item.title}</div>
+        <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: "#A0AECB", lineHeight: 1.7 }}>{item.desc}</div>
+      </div>
+    ))}
+  </div>
+  <div style={{ textAlign: "center" }}>
+    <button className="gold-btn" style={{ borderRadius: 10, padding: "14px 32px", fontSize: 16 }} onClick={() => setScreen("Signup")}>
+      Get Started Free →
+    </button>
+  </div>
+</div>
       {/* Footer */}
       <div style={{ textAlign: "center", padding: "32px", borderTop: "1px solid #FFFFFF0F", marginTop: 40 }}>
         <div style={{ display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
