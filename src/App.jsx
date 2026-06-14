@@ -186,12 +186,15 @@ const navItems = [
   { id: "Syllabus", icon: "✓", label: "Syllabus" },
   { id: "Library", icon: "▤", label: "Library" },
   { id: "Notes", icon: "📖", label: "Notes" },
+  { id: "Videos", icon: "🎥", label: "Videos" },
   { id: "Chat", icon: "💬", label: "Chat" },
   { id: "Tests", icon: "📝", label: "Tests" },
+];
+
+const extraNavItems = [
   { id: "Teacher", icon: "◎", label: "Teacher" },
   { id: "Parent", icon: "👨‍👩‍👧", label: "Parent" },
 ];
-
 export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [screen, setScreen] = useState("Landing");
@@ -258,7 +261,7 @@ export default function App() {
       {screen === "Terms" && <TermsScreen t={t} setScreen={setScreen} />}
       {screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
-      {["Dashboard", "Syllabus", "Library", "Notes", "Chat", "Tests", "Teacher", "Parent"].includes(screen) && (
+      {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin"].includes(screen) && (
       <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} isMobile={isMobile} />
       )}
     </div>
@@ -482,7 +485,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
-      <div style={{ width: isMobile ? "100%" : 220, background: t.sidebar, display: isMobile ? "none" : "flex", flexDirection: "column", padding: "24px 0", position: "sticky", top: 0, height: "100vh" }}>
+    <div style={{ width: isMobile ? "100%" : 220, background: t.sidebar, display: isMobile ? "none" : "flex", flexDirection: "column", padding: "24px 0", position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
         <div style={{ padding: "0 20px 28px", borderBottom: "1px solid #FFFFFF0A" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 34, height: 34, borderRadius: 8, background: "linear-gradient(135deg, #C9A84C, #E8CC80)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 16, color: "#0A1628" }}>R1</div>
@@ -500,6 +503,22 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
               </div>
             );
           })}
+          <div style={{ borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#FFFFFF11", margin: "8px 0" }} />
+          {extraNavItems.map(item => {
+            const isActive = screen === item.id;
+            return (
+              <div key={item.id} className="nav-item" onClick={() => setScreen(item.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 10, marginBottom: 4, background: isActive ? "#C9A84C18" : "transparent", borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: isActive ? "#C9A84C" : "transparent" }}>
+                <span style={{ fontSize: 18, opacity: isActive ? 1 : 0.5 }}>{item.icon}</span>
+                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, fontWeight: isActive ? 600 : 400, color: isActive ? "#C9A84C" : "#8899BB" }}>{item.label}</span>
+              </div>
+            );
+          })}
+        {user?.id === "b91b35fa-3890-475e-a9fa-e4ffa4edb69a" && (
+          <div onClick={() => setScreen("Admin")} className="nav-item" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 10, marginBottom: 4, background: screen === "Admin" ? "#C9A84C18" : "transparent", borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: screen === "Admin" ? "#C9A84C" : "transparent" }}>
+            <span style={{ fontSize: 16 }}>⚙️</span>
+            <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: screen === "Admin" ? "#C9A84C" : "#A0AECB", fontWeight: screen === "Admin" ? 600 : 400 }}>Admin</span>
+          </div>
+        )}
         </nav>
 
         <div style={{ padding: "16px 16px 0", borderTop: "1px solid #FFFFFF0A" }}>
@@ -513,11 +532,11 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#6B7A99" }}>Student</div>
             </div>
            </div>
-           <div style={{ padding: "8px 16px", marginBottom: 8 }}>
-           <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: "#FFFFFF33", lineHeight: 1.5, textAlign: "center" }}>
-           Not affiliated with ZIMSEC or Cambridge Assessment
-           </div>
-           </div>
+          <div style={{ padding: "8px 16px", marginBottom: 4 }}>
+  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: "#FFFFFF33", lineHeight: 1.5, textAlign: "center" }}>
+    Not affiliated with ZIMSEC or Cambridge Assessment
+  </div>
+</div>
           <button onClick={handleLogout} style={{ width: "100%", background: "#FF000015", border: "1px solid #FF000033", borderRadius: 8, padding: "8px 12px", color: "#FF6666", cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
             Log Out
           </button>
@@ -531,18 +550,32 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
         {screen === "Chat" && <ChatView t={t} user={user} isMobile={isMobile} />}
         {screen === "Tests" && <TestView t={t} user={user} isMobile={isMobile} />}
         {screen === "Notes" && <NotesView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Videos" && <VideosView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Admin" && user?.id === "b91b35fa-3890-475e-a9fa-e4ffa4edb69a" && <AdminView t={t} user={user} isMobile={isMobile} />}
         {screen === "Teacher" && <TeacherView t={t} user={user} isMobile={isMobile} />}
         {screen === "Parent" && <ParentView t={t} user={user} isMobile={isMobile} />}
       </div>
      {isMobile && (
   <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: t.sidebar, zIndex: 100, borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#FFFFFF11" }}>
     <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", padding: "10px 0" }}>
-      {navItems.map(item => (
+      {[
+  { id: "Dashboard", icon: "⊞", label: "Home" },
+  { id: "Library", icon: "▤", label: "Library" },
+  { id: "Notes", icon: "📖", label: "Notes" },
+  { id: "Tests", icon: "📝", label: "Tests" },
+  { id: "Chat", icon: "💬", label: "Chat" },
+].map(item => (
         <div key={item.id} onClick={() => setScreen(item.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "4px 8px", cursor: "pointer", flex: 1 }}>
           <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
           <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: screen === item.id ? "#C9A84C" : "#A0AECB", fontWeight: screen === item.id ? 700 : 400 }}>{item.label}</span>
         </div>
       ))}
+      {user?.id === "b91b35fa-3890-475e-a9fa-e4ffa4edb69a" && (
+  <div onClick={() => setScreen("Admin")} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 10, marginBottom: 4, background: screen === "Admin" ? "#C9A84C18" : "transparent", cursor: "pointer" }}>
+    <span style={{ fontSize: 16 }}>⚙️</span>
+    <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: screen === "Admin" ? "#C9A84C" : "#A0AECB" }}>Admin</span>
+  </div>
+)}
     </div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 16px", borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#FFFFFF11" }}>
       <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#A0AECB" }}>
@@ -1143,7 +1176,7 @@ function TeacherView({ t, user, isMobile }) {
     if (!profile) { setMessage("❌ Save your profile first!"); return; }
     setSaving(true);
     await supabase.from("teacher_videos").insert({ ...videoForm, teacher_id: profile.id });
-    setMessage("✅ Video added successfully!");
+    setMessage("✅ Video submitted for review! It will appear once approved by RIF-App.");
     setVideoForm({ title: "", description: "", video_url: "", subject: "", curriculum: "ZIMSEC", level: "O-Level", is_free: true, price: 0 });
     loadVideos(profile.id);
     setSaving(false);
@@ -2308,6 +2341,380 @@ function ParentView({ t, user, isMobile }) {
               4. They copy and share it with you
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function VideosView({ t, user, isMobile }) {
+  const [videos, setVideos] = useState([]);
+  const [teachers, setTeachers] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("All");
+  const [level, setLevel] = useState("All");
+  const [search, setSearch] = useState("");
+  const [selectedVideo, setSelectedVideo] = useState(null);
+
+  useEffect(() => {
+    loadVideos();
+  }, []);
+
+  async function loadVideos() {
+    try {
+      const { data } = await supabase
+        .from("teacher_videos")
+        .select("*, teacher_profiles(full_name, subject, school, is_verified)")
+        .eq("status", "approved")
+        .order("created_at", { ascending: false });
+      if (data) setVideos(data);
+    } catch(e) {
+      console.log("Load videos error:", e);
+    }
+    setLoading(false);
+  }
+
+  const filtered = videos.filter(v => {
+    const matchFilter = filter === "All" || v.curriculum === filter;
+    const matchLevel = level === "All" || v.level === level;
+    const matchSearch = search === "" || 
+      v.title.toLowerCase().includes(search.toLowerCase()) ||
+      v.subject.toLowerCase().includes(search.toLowerCase());
+    return matchFilter && matchLevel && matchSearch;
+  });
+
+  const freeVideos = filtered.filter(v => v.is_free);
+  const paidVideos = filtered.filter(v => !v.is_free);
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: t.bg }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Loading videos...</div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 1000, background: t.bg, minHeight: "100vh" }}>
+      <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: isMobile ? 22 : 28, color: t.text, marginBottom: 6 }}>
+        Video Lessons
+      </h1>
+      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24 }}>
+        Learn from Zimbabwe's best teachers
+      </p>
+
+      {/* Search */}
+      <input
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search videos by subject or title..."
+        style={{ width: "100%", padding: "12px 16px", borderRadius: 10, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.card, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none", marginBottom: 16 }}
+      />
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {["All", "ZIMSEC", "Cambridge"].map(c => (
+          <button key={c} onClick={() => setFilter(c)} style={{
+            padding: "7px 18px", borderRadius: 99,
+            background: filter === c ? "#C9A84C" : t.card,
+            borderWidth: 1, borderStyle: "solid",
+            borderColor: filter === c ? "#C9A84C" : t.cardBorder,
+            color: filter === c ? "#0A1628" : t.textMuted,
+            fontSize: 13, fontWeight: filter === c ? 700 : 400,
+            cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+          }}>{c}</button>
+        ))}
+        {["All", "O-Level", "A-Level"].map(l => (
+          <button key={l} onClick={() => setLevel(l)} style={{
+            padding: "7px 18px", borderRadius: 99,
+            background: level === l ? "#1A4DB3" : t.card,
+            borderWidth: 1, borderStyle: "solid",
+            borderColor: level === l ? "#1A4DB3" : t.cardBorder,
+            color: level === l ? "#fff" : t.textMuted,
+            fontSize: 13, fontWeight: level === l ? 700 : 400,
+            cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+          }}>{l}</button>
+        ))}
+      </div>
+
+      {videos.length === 0 ? (
+        <div style={{ background: t.card, borderRadius: 16, padding: 60, textAlign: "center" }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🎥</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: t.text, marginBottom: 8 }}>No Videos Yet</div>
+          <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 20 }}>
+            Teachers are uploading lessons. Check back soon!
+          </div>
+          <div style={{ background: "#1A4DB322", borderRadius: 12, padding: 16, maxWidth: 400, margin: "0 auto" }}>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.text, fontWeight: 600, marginBottom: 4 }}>Are you a teacher?</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>Go to the Teacher tab to upload your video lessons and reach thousands of students!</div>
+          </div>
+        </div>
+      ) : (
+        <div>
+          {/* Free Videos */}
+          {freeVideos.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 16 }}>
+                🆓 Free Lessons ({freeVideos.length})
+              </h2>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 16 }}>
+                {freeVideos.map(video => (
+                  <div key={video.id} style={{ background: t.card, borderRadius: 16, overflow: "hidden" }}>
+                    <div style={{ background: "linear-gradient(135deg, #0D2B6B, #1A4DB3)", padding: "28px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", cursor: "pointer" }}
+                      onClick={() => setSelectedVideo(video)}>
+                      <span style={{ fontSize: 48 }}>▶️</span>
+                      <div style={{ position: "absolute", top: 10, right: 10, background: "#1A7A4A", borderRadius: 6, padding: "2px 8px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#fff", fontWeight: 600 }}>FREE</div>
+                    </div>
+                    <div style={{ padding: 16 }}>
+                      <h4 style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, color: t.text, marginBottom: 6 }}>{video.title}</h4>
+                      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginBottom: 8 }}>
+                        {video.subject} · {video.curriculum} {video.level}
+                      </div>
+                      {video.teacher_profiles && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                          <div style={{ width: 24, height: 24, borderRadius: "50%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#0A1628" }}>
+                            {video.teacher_profiles.full_name?.charAt(0)}
+                          </div>
+                          <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>
+                            {video.teacher_profiles.full_name} · {video.teacher_profiles.school}
+                            {video.teacher_profiles.is_verified && " ✓"}
+                          </span>
+                        </div>
+                      )}
+                      <a href={video.video_url} target="_blank" rel="noreferrer" style={{ display: "block", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", borderRadius: 8, padding: "10px", color: "#0A1628", fontWeight: 700, fontSize: 13, textDecoration: "none", fontFamily: "'Source Sans 3', sans-serif", textAlign: "center" }}>
+                        Watch Now →
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Paid Videos */}
+          {paidVideos.length > 0 && (
+            <div>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 16 }}>
+                💎 Premium Lessons ({paidVideos.length})
+              </h2>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 16 }}>
+                {paidVideos.map(video => (
+                  <div key={video.id} style={{ background: t.card, borderRadius: 16, overflow: "hidden" }}>
+                    <div style={{ background: "linear-gradient(135deg, #1A1A2E, #16213E)", padding: "28px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                      <span style={{ fontSize: 48, filter: "blur(2px)" }}>▶️</span>
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#00000066" }}>
+                        <span style={{ fontSize: 32 }}>🔒</span>
+                      </div>
+                      <div style={{ position: "absolute", top: 10, right: 10, background: "#C9A84C", borderRadius: 6, padding: "2px 8px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#0A1628", fontWeight: 700 }}>${video.price}</div>
+                    </div>
+                    <div style={{ padding: 16 }}>
+                      <h4 style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, color: t.text, marginBottom: 6 }}>{video.title}</h4>
+                      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginBottom: 8 }}>
+                        {video.subject} · {video.curriculum} {video.level}
+                      </div>
+                      {video.teacher_profiles && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                          <div style={{ width: 24, height: 24, borderRadius: "50%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#0A1628" }}>
+                            {video.teacher_profiles.full_name?.charAt(0)}
+                          </div>
+                          <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>
+                            {video.teacher_profiles.full_name} · {video.teacher_profiles.school}
+                          </span>
+                        </div>
+                      )}
+                      <button style={{ width: "100%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 8, padding: "10px", color: "#0A1628", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif" }}>
+                        Unlock for ${video.price} →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+function AdminView({ t, user, isMobile }) {
+  const [tab, setTab] = useState("videos");
+  const [pendingVideos, setPendingVideos] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [stats, setStats] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    loadAdminData();
+  }, []);
+
+  async function loadAdminData() {
+    try {
+      const { data: videos } = await supabase
+        .from("teacher_videos")
+        .select("*, teacher_profiles(full_name, school, subject)")
+        .eq("status", "pending");
+      if (videos) setPendingVideos(videos);
+
+      const { count: userCount } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+
+      const { count: testCount } = await supabase
+        .from("test_attempts")
+        .select("*", { count: "exact", head: true });
+
+      const { count: messageCount } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true });
+
+      const { count: teacherCount } = await supabase
+        .from("teacher_profiles")
+        .select("*", { count: "exact", head: true });
+
+      setStats({
+        users: userCount || 0,
+        tests: testCount || 0,
+        messages: messageCount || 0,
+        teachers: teacherCount || 0,
+      });
+    } catch(e) {
+      console.log("Admin load error:", e);
+    }
+    setLoading(false);
+  }
+
+  async function approveVideo(videoId) {
+    await supabase.from("teacher_videos").update({ status: "approved" }).eq("id", videoId);
+    setMessage("✅ Video approved!");
+    setPendingVideos(prev => prev.filter(v => v.id !== videoId));
+  }
+
+  async function rejectVideo(videoId) {
+    await supabase.from("teacher_videos").update({ status: "rejected" }).eq("id", videoId);
+    setMessage("❌ Video rejected!");
+    setPendingVideos(prev => prev.filter(v => v.id !== videoId));
+  }
+
+  const tabs = [
+    { id: "videos", label: "🎥 Pending Videos" },
+    { id: "stats", label: "📊 Platform Stats" },
+  ];
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: t.bg }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Loading admin...</div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 900, background: t.bg, minHeight: "100vh" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: isMobile ? 22 : 28, color: t.text }}>
+          ⚙️ Admin Panel
+        </h1>
+        <span style={{ background: "#F4433622", color: "#F44336", borderRadius: 6, padding: "2px 8px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, fontWeight: 700 }}>PRIVATE</span>
+      </div>
+      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24 }}>
+        Manage RIF-App platform
+      </p>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {tabs.map(tb => (
+          <button key={tb.id} onClick={() => setTab(tb.id)} style={{
+            padding: "8px 16px", borderRadius: 99,
+            background: tab === tb.id ? "#C9A84C" : t.card,
+            borderWidth: 1, borderStyle: "solid",
+            borderColor: tab === tb.id ? "#C9A84C" : t.cardBorder,
+            color: tab === tb.id ? "#0A1628" : t.textMuted,
+            fontSize: 13, fontWeight: tab === tb.id ? 700 : 400,
+            cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+          }}>{tb.label}</button>
+        ))}
+      </div>
+
+      {message && (
+        <div style={{ background: message.includes("✅") ? "#1A7A4A22" : "#F4433622", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: message.includes("✅") ? "#1A7A4A" : "#F44336" }}>
+          {message}
+        </div>
+      )}
+
+      {/* Stats Tab */}
+      {tab === "stats" && (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+            {[
+              { label: "Total Users", value: stats.users, icon: "👤", color: "#1A4DB3" },
+              { label: "Tests Taken", value: stats.tests, icon: "📝", color: "#C9A84C" },
+              { label: "Messages Sent", value: stats.messages, icon: "💬", color: "#1A7A4A" },
+              { label: "Teachers", value: stats.teachers, icon: "👨‍🏫", color: "#9C27B0" },
+            ].map(stat => (
+              <div key={stat.label} style={{ background: t.card, borderRadius: 14, padding: 20, borderTopWidth: 3, borderTopStyle: "solid", borderTopColor: stat.color, textAlign: "center" }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>{stat.icon}</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: stat.color }}>{stat.value}</div>
+                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 16 }}>Platform Health</h3>
+            {[
+              { label: "Supabase Database", status: "Operational", color: "#1A7A4A" },
+              { label: "Paynow Payments", status: "Live - Pending Approval", color: "#C9A84C" },
+              { label: "EcoCash Payments", status: "Active", color: "#1A7A4A" },
+              { label: "Visa/Mastercard", status: "Pending Verification", color: "#F44336" },
+              { label: "AI Notes", status: "Credits Needed", color: "#F44336" },
+              { label: "Vercel Hosting", status: "Operational", color: "#1A7A4A" },
+            ].map(item => (
+              <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder }}>
+                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text }}>{item.label}</span>
+                <span style={{ background: item.color + "22", color: item.color, borderRadius: 6, padding: "2px 10px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, fontWeight: 600 }}>{item.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pending Videos Tab */}
+      {tab === "videos" && (
+        <div>
+          {pendingVideos.length === 0 ? (
+            <div style={{ background: t.card, borderRadius: 16, padding: 40, textAlign: "center" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 8 }}>All caught up!</div>
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>No videos pending review</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {pendingVideos.map(video => (
+                <div key={video.id} style={{ background: t.card, borderRadius: 16, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <div>
+                      <h4 style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: t.text, marginBottom: 4 }}>{video.title}</h4>
+                      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>
+                        {video.subject} · {video.curriculum} {video.level} · {video.is_free ? "Free" : `$${video.price}`}
+                      </div>
+                      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginTop: 4 }}>
+                        By {video.teacher_profiles?.full_name} · {video.teacher_profiles?.school}
+                      </div>
+                    </div>
+                    <span style={{ background: "#FF980022", color: "#FF9800", borderRadius: 6, padding: "2px 8px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>PENDING</span>
+                  </div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.text, marginBottom: 12 }}>{video.description}</div>
+                  <a href={video.video_url} target="_blank" rel="noreferrer" style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#1A4DB3", display: "block", marginBottom: 16 }}>
+                    🔗 {video.video_url}
+                  </a>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={() => approveVideo(video.id)} style={{ flex: 1, background: "linear-gradient(135deg, #1A7A4A, #2EAD6A)", border: "none", borderRadius: 8, padding: "10px", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
+                      ✅ Approve
+                    </button>
+                    <button onClick={() => rejectVideo(video.id)} style={{ flex: 1, background: "#F4433622", borderWidth: 1, borderStyle: "solid", borderColor: "#F44336", borderRadius: 8, padding: "10px", color: "#F44336", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
+                      ❌ Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
