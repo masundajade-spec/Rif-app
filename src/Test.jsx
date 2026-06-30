@@ -329,9 +329,9 @@ export default function TestView({ t, user, isMobile }) {
   );
 
   // Results
-  if (stage === "results") return (
+ if (stage === "results") return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: t.bg, padding: 24 }}>
-      <div style={{ background: t.card, borderRadius: 20, padding: "40px 36px", maxWidth: 480, width: "100%", textAlign: "center" }}>
+      <div style={{ background: t.card, borderRadius: 20, padding: "40px 36px", maxWidth: results.score / results.total >= 0.7 ? 680 : 480, width: "100%", textAlign: "center" }}>
         <div style={{ fontSize: 64, marginBottom: 16 }}>
           {results.score / results.total >= 0.7 ? "🎉" : results.score / results.total >= 0.5 ? "👍" : "📚"}
         </div>
@@ -349,6 +349,41 @@ export default function TestView({ t, user, isMobile }) {
             ⚠️ {results.violations} violation{results.violations > 1 ? "s" : ""} recorded
           </div>
         )}
+
+        {results.score / results.total >= 0.7 && (
+          <div style={{ marginTop: 24, textAlign: "left" }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 12, textAlign: "center" }}>
+              📋 Review Your Answers
+            </div>
+            {questions.map((q, i) => {
+              const studentAnswer = answers[q.id];
+              const isCorrect = studentAnswer === q.correct_answer;
+              if (isCorrect) return null;
+              return (
+                <div key={q.id} style={{ background: "#F4433611", borderRadius: 10, padding: "12px 16px", marginBottom: 10, borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: "#F44336" }}>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginBottom: 4 }}>
+                    Question {i + 1}
+                  </div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, fontWeight: 600, marginBottom: 8 }}>
+                    {q.question}
+                  </div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#F44336", marginBottom: 4 }}>
+                    ❌ Your answer: {q[`option_${studentAnswer?.toLowerCase()}`] || "Not answered"}
+                  </div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#1A7A4A" }}>
+                    ✅ Correct answer: {q[`option_${q.correct_answer.toLowerCase()}`]}
+                  </div>
+                </div>
+              );
+            })}
+            {questions.every(q => answers[q.id] === q.correct_answer) && (
+              <div style={{ textAlign: "center", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: "#1A7A4A" }}>
+                🎉 Perfect score! All answers correct!
+              </div>
+            )}
+          </div>
+        )}
+
         <button
           onClick={() => { setStage("list"); setResults(null); }}
           style={{ width: "100%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 12, padding: "14px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 16, marginTop: 16 }}
