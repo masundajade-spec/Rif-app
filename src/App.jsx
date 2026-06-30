@@ -197,12 +197,15 @@ const extraNavItems = [
 ];
 export default function App() {
   const [isDark, setIsDark] = useState(false);
+  const [fontSize, setFontSize] = useState("normal");
+  const [highContrast, setHighContrast] = useState(false);
   const [screen, setScreen] = useState("Landing");
   const [user, setUser] = useState(null);
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const t = isDark ? theme.dark : theme.light;
+  const fontScale = fontSize === "small" ? 0.85 : fontSize === "large" ? 1.2 : fontSize === "xlarge" ? 1.4 : 1;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -262,7 +265,7 @@ export default function App() {
       {screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
       {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin", "More"].includes(screen) && (
-      <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} isMobile={isMobile} />
+      <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} isMobile={isMobile} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast} fontScale={fontScale} />
       )}
     </div>
   );
@@ -566,14 +569,14 @@ function AuthScreen({ t, mode, setScreen }) {
   );
 }
 
-function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout, isMobile }) {
+function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout, isMobile, fontSize, setFontSize, highContrast, setHighContrast, fontScale }) {
   const initials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name.split(" ").map(n => n[0]).join("").toUpperCase()
     : "U";
   const name = user?.user_metadata?.full_name || user?.email || "Student";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div style={{ display: "flex", minHeight: "100vh", filter: highContrast ? "contrast(1.5) brightness(1.1)" : "none", fontSize: `${fontScale}rem` }}>
     <div style={{ width: isMobile ? "100%" : 220, background: t.sidebar, display: isMobile ? "none" : "flex", flexDirection: "column", padding: "24px 0", position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
         <div style={{ padding: "0 20px 28px", borderBottom: "1px solid #FFFFFF0A" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -621,6 +624,30 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#6B7A99" }}>Student</div>
             </div>
            </div>
+           {/* Accessibility */}
+<div style={{ padding: "8px 16px", marginBottom: 8 }}>
+  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#6B7A99", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>Accessibility</div>
+  
+  {/* Text size */}
+  <div style={{ marginBottom: 8 }}>
+    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#A0AECB", marginBottom: 4 }}>Text Size</div>
+    <div style={{ display: "flex", gap: 4 }}>
+      {[["S", "small"], ["M", "normal"], ["L", "large"], ["XL", "xlarge"]].map(([label, val]) => (
+        <button key={val} onClick={() => setFontSize(val)} style={{ flex: 1, padding: "4px", borderRadius: 6, background: fontSize === val ? "#C9A84C" : "#FFFFFF11", border: "none", color: fontSize === val ? "#0A1628" : "#A0AECB", cursor: "pointer", fontSize: 11, fontWeight: fontSize === val ? 700 : 400 }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* High contrast */}
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: "#A0AECB" }}>High Contrast</div>
+    <button onClick={() => setHighContrast(!highContrast)} style={{ background: highContrast ? "#C9A84C" : "#FFFFFF11", border: "none", borderRadius: 99, padding: "3px 10px", color: highContrast ? "#0A1628" : "#A0AECB", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
+      {highContrast ? "ON" : "OFF"}
+    </button>
+  </div>
+</div>
           <div style={{ padding: "8px 16px", marginBottom: 4 }}>
   <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: "#FFFFFF33", lineHeight: 1.5, textAlign: "center" }}>
     Not affiliated with ZIMSEC or Cambridge Assessment
