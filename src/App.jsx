@@ -746,6 +746,8 @@ function DashboardView({ t, user, setScreen, isMobile }) {
   const [totalTopics, setTotalTopics] = useState(0);
   const [doneTopics, setDoneTopics] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [earnedBadges, setEarnedBadges] = useState([]);
+  const [lockedBadges, setLockedBadges] = useState([]);
 
   useEffect(() => {
     if (user) loadDashboard();
@@ -788,6 +790,37 @@ function DashboardView({ t, user, setScreen, isMobile }) {
 
       setProgress(subjectList);
     }
+    // Load and check achievements
+const { data: allBadges } = await supabase.from("achievements").select("*");
+const { data: earnedData } = await supabase.from("student_achievements").select("achievement_id").eq("user_id", user.id);
+
+if (allBadges && earnedData) {
+  const earnedIds = earnedData.map(e => e.achievement_id);
+  const earned = allBadges.filter(b => earnedIds.includes(b.id));
+  const locked = allBadges.filter(b => !earnedIds.includes(b.id));
+  setEarnedBadges(earned);
+  setLockedBadges(locked);
+
+  // Check and award new achievements
+  const topicsDone = doneTopics;
+  const badgesToAward = [];
+
+  allBadges.forEach(badge => {
+    if (earnedIds.includes(badge.id)) return;
+    if (badge.condition_type === "topics_done" && topicsDone >= badge.condition_value) {
+      badgesToAward.push(badge.id);
+    }
+  });
+
+  if (badgesToAward.length > 0) {
+    for (const badgeId of badgesToAward) {
+      await supabase.from("student_achievements").insert({
+        user_id: user.id,
+        achievement_id: badgeId,
+      }).select();
+    }
+  }
+}
     setLoading(false);
   }
 
@@ -874,6 +907,44 @@ function DashboardView({ t, user, setScreen, isMobile }) {
           <button className="gold-btn" onClick={() => setScreen("Tests")} style={{ borderRadius: 10, padding: "12px", fontSize: 14, marginTop: 20 }}>Start Test →</button>
         </div>
       </div>
+
+      {/* Achievements */}
+      <div style={{ background: t.card, borderRadius: 16, padding: 24, marginTop: 20 }}>
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+    <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text }}>🏆 Achievements</h3>
+    <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#C9A84C" }}>{earnedBadges.length} earned</span>
+  </div>
+  {earnedBadges.length === 0 ? (
+    <div style={{ textAlign: "center", padding: "20px 0", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted }}>
+      Complete topics and take tests to earn badges! 🎯
+    </div>
+  ) : (
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(5, 1fr)", gap: 12 }}>
+      {earnedBadges.map(badge => (
+        <div key={badge.id} style={{ textAlign: "center", padding: 12, background: t.bg, borderRadius: 12, borderWidth: 1, borderStyle: "solid", borderColor: "#C9A84C44" }}>
+          <div style={{ fontSize: 32, marginBottom: 6 }}>{badge.icon}</div>
+          <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.text, fontWeight: 600, marginBottom: 2 }}>{badge.name}</div>
+          <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 10, color: t.textMuted }}>{badge.description}</div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {/* Locked badges */}
+  {lockedBadges.length > 0 && (
+    <div style={{ marginTop: 16 }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginBottom: 10 }}>Locked badges:</div>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(4, 1fr)" : "repeat(6, 1fr)", gap: 8 }}>
+        {lockedBadges.slice(0, 6).map(badge => (
+          <div key={badge.id} style={{ textAlign: "center", padding: 8, background: t.bg, borderRadius: 10, opacity: 0.4 }}>
+            <div style={{ fontSize: 24, marginBottom: 4, filter: "grayscale(100%)" }}>{badge.icon}</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: t.textMuted }}>{badge.name}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+</div>
     </div>
   );
 }
