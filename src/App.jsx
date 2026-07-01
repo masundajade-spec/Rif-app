@@ -763,61 +763,73 @@ function DashboardView({ t, user, setScreen, isMobile }) {
       .from("syllabus_topics")
       .select("id, subject, curriculum, level");
 
-    if (prog && topics) {
-      setTotalTopics(topics.length);
-      const done = prog.filter(p => p.status === "done").length;
-      setDoneTopics(done);
+   if (prog && topics) {
+  setTotalTopics(topics.length);
+  const done = prog.filter(p => p.status === "done").length;
+  setDoneTopics(done);
 
-      const subjectMap = {};
-      topics.forEach(t => {
-        const key = `${t.subject} (${t.curriculum} ${t.level})`;
-        if (!subjectMap[key]) subjectMap[key] = { total: 0, done: 0, subject: t.subject, curriculum: t.curriculum, level: t.level };
-        subjectMap[key].total++;
-      });
+  const subjectMap = {};
+  topics.forEach(topic => {
+    const key = `${topic.subject} (${topic.curriculum} ${topic.level})`;
+    if (!subjectMap[key]) subjectMap[key] = { total: 0, done: 0, subject: topic.subject, curriculum: topic.curriculum, level: topic.level };
+    subjectMap[key].total++;
+  });
 
-      prog.forEach(p => {
-        if (p.syllabus_topics) {
-          const key = `${p.syllabus_topics.subject} (${p.syllabus_topics.curriculum} ${p.syllabus_topics.level})`;
-          if (subjectMap[key] && p.status === "done") subjectMap[key].done++;
-        }
-      });
-
-      const subjectList = Object.entries(subjectMap)
-        .filter(([, v]) => v.done > 0)
-        .map(([key, v]) => ({ key, ...v, percent: Math.round(v.done / v.total * 100) }))
-        .sort((a, b) => b.percent - a.percent)
-        .slice(0, 5);
-
-      setProgress(subjectList);
-    }
-    // Load and check achievements
-const { data: allBadges } = await supabase.from("achievements").select("*");
-const { data: earnedData } = await supabase.from("student_achievements").select("achievement_id").eq("user_id", user.id);
-
-if (allBadges && earnedData) {
-  const earnedIds = earnedData.map(e => e.achievement_id);
-  const earned = allBadges.filter(b => earnedIds.includes(b.id));
-  const locked = allBadges.filter(b => !earnedIds.includes(b.id));
-  setEarnedBadges(earned);
-  setLockedBadges(locked);
-
-  // Check and award new achievements
-  const topicsDone = doneTopics;
-  const badgesToAward = [];
-
-  allBadges.forEach(badge => {
-    if (earnedIds.includes(badge.id)) return;
-    if (badge.condition_type === "topics_done" && topicsDone >= badge.condition_value) {
-      badgesToAward.push(badge.id);
+  prog.forEach(p => {
+    if (p.syllabus_topics) {
+      const key = `${p.syllabus_topics.subject} (${p.syllabus_topics.curriculum} ${p.syllabus_topics.level})`;
+      if (subjectMap[key] && p.status === "done") subjectMap[key].done++;
     }
   });
 
-  if (badgesToAward.length > 0) {
-    for (const badgeId of badgesToAward) {
-      await supabase.from("student_achievements").insert({
-        user_id: user.id,
-        achievement_id: badgeId,
-      }).select();
+  const subjectList = Object.entries(subjectMap)
+    .filter(([, v]) => v.done > 0)
+    .map(([key, v]) => ({ key, ...v, percent: Math.round(v.done / v.total * 100) }))
+    .sort((a, b) => b.percent - a.percent)
+  
+
+  setProgress(subjectList);
+
+  // Load achievements
+  const { data: allBadges } = await supabase.from("achievements").select("*");
+  const { data: earnedData } = await supabase.from("student_achievements").select("achievement_id").eq("user_id", user.id);
+  const { data: testData } = await supabase.from("test_attempts").select("*").eq("user_id", user.id);
+  const { data: msgData } = await supabase.from("messages").select("id").eq("user_id", user.id);
+
+  if (allBadges && earnedData) {
+    const earnedIds = earnedData.map(e => e.achievement_id);
+    setEarnedBadges(allBadges.filter(b => earnedIds.includes(b.id)));
+    setLockedBadges(allBadges.filter(b => !earnedIds.includes(b.id)));
+
+    const testsCount = testData?.length || 0;
+    const msgsCount = msgData?.length || 0;
+    const bestScore = testData?.length > 0 ? Math.max(...testData.map(t => Math.round(t.score / t.total_marks * 100))) : 0;
+    const subjectsStudied = Object.keys(subjectMap).filter(k => subjectMap[k].done > 0).length;
+
+    const badgesToAward = [];
+    allBadges.forEach(badge => {
+      if (earnedIds.includes(badge.id)) return;
+      if (badge.condition_type === "topics_done" && done >= badge.condition_value) badgesToAward.push(badge.id);
+      if (badge.condition_type === "tests_taken" && testsCount >= badge.condition_value) badgesToAward.push(badge.id);
+      if (badge.condition_type === "test_passed" && bestScore >= badge.condition_value) badgesToAward.push(badge.id);
+      if (badge.condition_type === "messages_sent" && msgsCount >= badge.condition_value) badgesToAward.push(badge.id);
+      if (badge.condition_type === "subjects_studied" && subjectsStudied >= badge.condition_value) badgesToAward.push(badge.id);
+      if (badge.condition_type === "special") badgesToAward.push(badge.id);
+    });
+
+    if (badgesToAward.length > 0) {
+      for (const badgeId of badgesToAward) {
+        await supabase.from("student_achievements").insert({
+          user_id: user.id,
+          achievement_id: badgeId,
+        });
+      }
+      const { data: newEarned } = await supabase.from("student_achievements").select("achievement_id").eq("user_id", user.id);
+      if (newEarned) {
+        const newEarnedIds = newEarned.map(e => e.achievement_id);
+        setEarnedBadges(allBadges.filter(b => newEarnedIds.includes(b.id)));
+        setLockedBadges(allBadges.filter(b => !newEarnedIds.includes(b.id)));
+      }
     }
   }
 }
@@ -867,7 +879,8 @@ if (allBadges && earnedData) {
             <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted }}>No progress yet — go to Syllabus to start tracking!</div>
           </div>
         ) : (
-          progress.map(sub => (
+          <div style={{ maxHeight: 300, overflowY: "auto", paddingRight: 8 }}>
+          {progress.map(sub => (
             <div key={sub.key} style={{ marginBottom: 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, fontWeight: 600, color: t.text }}>{sub.subject}</span>
@@ -878,7 +891,8 @@ if (allBadges && earnedData) {
               </div>
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: "#1A4DB3", marginTop: 4 }}>{sub.percent}% complete</div>
             </div>
-          ))
+          ))}
+          </div>
         )}
       </div>
 
