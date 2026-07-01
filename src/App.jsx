@@ -803,7 +803,7 @@ function DashboardView({ t, user, setScreen, isMobile }) {
 
     const testsCount = testData?.length || 0;
     const msgsCount = msgData?.length || 0;
-    const bestScore = testData?.length > 0 ? Math.max(...testData.map(t => Math.round(t.score / t.total_marks * 100))) : 0;
+    const bestScore = testData?.length > 0 ? Math.max(...testData.filter(t => t.total_marks > 0).map(t => Math.round(t.score / t.total_marks * 100))) : 0;
     const subjectsStudied = Object.keys(subjectMap).filter(k => subjectMap[k].done > 0).length;
 
     const badgesToAward = [];
