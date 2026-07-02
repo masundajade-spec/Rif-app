@@ -193,6 +193,7 @@ const navItems = [
 
 const extraNavItems = [
   { id: "Flashcards", icon: "🃏", label: "Flashcards" },
+  { id: "Analytics", icon: "📊", label: "Analytics" },
   { id: "Teacher", icon: "◎", label: "Teacher" },
   { id: "Parent", icon: "👨‍👩‍👧", label: "Parent" },
 ];
@@ -265,7 +266,7 @@ export default function App() {
       {screen === "Terms" && <TermsScreen t={t} setScreen={setScreen} />}
       {screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
-      {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin", "More", "Flashcards"].includes(screen) && (
+      {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin", "More", "Flashcards", "Analytics"].includes(screen) && (
       <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} isMobile={isMobile} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast} fontScale={fontScale} />
       )}
     </div>
@@ -675,6 +676,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {[
         { id: "Flashcards", icon: "🃏", label: "Flashcards", desc: "Quick revision cards" },
+        { id: "Analytics", icon: "📊", label: "Study Analytics", desc: "Track your progress" },
         { id: "Syllabus", icon: "✓", label: "Syllabus Tracker", desc: "Track your topics" },
         { id: "Videos", icon: "🎥", label: "Video Lessons", desc: "Watch teacher videos" },
         { id: "Teacher", icon: "◎", label: "Teacher Dashboard", desc: "Manage your lessons" },
@@ -697,6 +699,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
         {screen === "Teacher" && <TeacherView t={t} user={user} isMobile={isMobile} />}
         {screen === "Parent" && <ParentView t={t} user={user} isMobile={isMobile} />}
         {screen === "Flashcards" && <FlashcardsView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Analytics" && <AnalyticsView t={t} user={user} isMobile={isMobile} />}
       </div>
      {isMobile && (
   <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: t.sidebar, zIndex: 100, borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#FFFFFF11" }}>
@@ -3234,6 +3237,222 @@ function FlashcardsView({ t, user, isMobile }) {
           <button onClick={() => markCard("got_it")} style={{ flex: 1, background: "linear-gradient(135deg, #1A7A4A, #2EAD6A)", border: "none", borderRadius: 12, padding: "16px", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 15 }}>
             ✓ Got It
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+function AnalyticsView({ t, user, isMobile }) {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalTopics: 0,
+    doneTopics: 0,
+    totalTests: 0,
+    avgScore: 0,
+    bestScore: 0,
+    totalMessages: 0,
+    badges: 0,
+    streak: 0,
+    subjectBreakdown: [],
+    testHistory: [],
+    strongSubjects: [],
+    weakSubjects: [],
+  });
+
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
+
+  async function loadAnalytics() {
+    try {
+      const { data: prog } = await supabase
+        .from("student_progress")
+        .select("*, syllabus_topics(subject, curriculum, level)")
+        .eq("user_id", user.id);
+
+      const { data: tests } = await supabase
+        .from("test_attempts")
+        .select("*, tests(subject, title)")
+        .eq("user_id", user.id)
+        .order("started_at", { ascending: true });
+
+      const { data: msgs } = await supabase.from("messages").select("id").eq("user_id", user.id);
+      const { data: badges } = await supabase.from("student_achievements").select("id").eq("user_id", user.id);
+      const { data: reminder } = await supabase.from("study_reminders").select("streak").eq("user_id", user.id);
+
+      const doneTopics = prog?.filter(p => p.status === "done").length || 0;
+
+      // Subject breakdown
+      const subjectMap = {};
+      prog?.forEach(p => {
+        if (p.syllabus_topics && p.status === "done") {
+          const subj = p.syllabus_topics.subject;
+          subjectMap[subj] = (subjectMap[subj] || 0) + 1;
+        }
+      });
+      const subjectBreakdown = Object.entries(subjectMap)
+        .map(([subject, count]) => ({ subject, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8);
+
+      // Test scores
+      const validTests = tests?.filter(t => t.total_marks > 0) || [];
+      const scores = validTests.map(t => Math.round(t.score / t.total_marks * 100));
+      const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      const bestScore = scores.length > 0 ? Math.max(...scores) : 0;
+
+      // Test history for chart
+      const testHistory = validTests.slice(-10).map(t => ({
+        name: t.tests?.subject || "Test",
+        score: Math.round(t.score / t.total_marks * 100),
+      }));
+
+      // Strong and weak subjects based on test scores
+      const subjectScores = {};
+      validTests.forEach(t => {
+        const subj = t.tests?.subject;
+        if (subj) {
+          if (!subjectScores[subj]) subjectScores[subj] = [];
+          subjectScores[subj].push(Math.round(t.score / t.total_marks * 100));
+        }
+      });
+      const subjectAvgs = Object.entries(subjectScores).map(([subject, scores]) => ({
+        subject,
+        avg: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+      }));
+      const strongSubjects = [...subjectAvgs].sort((a, b) => b.avg - a.avg).slice(0, 3);
+      const weakSubjects = [...subjectAvgs].sort((a, b) => a.avg - b.avg).slice(0, 3);
+
+      setStats({
+        totalTopics: prog?.length || 0,
+        doneTopics,
+        totalTests: tests?.length || 0,
+        avgScore,
+        bestScore,
+        totalMessages: msgs?.length || 0,
+        badges: badges?.length || 0,
+        streak: reminder?.[0]?.streak || 0,
+        subjectBreakdown,
+        testHistory,
+        strongSubjects,
+        weakSubjects,
+      });
+    } catch (e) {
+      console.log("Analytics error:", e);
+    }
+    setLoading(false);
+  }
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: t.bg }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Loading analytics...</div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 900, background: t.bg, minHeight: "100vh" }}>
+      <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: isMobile ? 22 : 28, color: t.text, marginBottom: 6 }}>
+        📊 Study Analytics
+      </h1>
+      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24 }}>
+        Your complete study insights
+      </p>
+
+      {/* Key stats */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+        {[
+          { label: "Topics Done", value: stats.doneTopics, icon: "✓", color: "#1A7A4A" },
+          { label: "Tests Taken", value: stats.totalTests, icon: "📝", color: "#1A4DB3" },
+          { label: "Average Score", value: `${stats.avgScore}%`, icon: "📈", color: "#C9A84C" },
+          { label: "Best Score", value: `${stats.bestScore}%`, icon: "🏆", color: "#8B3FC8" },
+          { label: "Study Streak", value: `${stats.streak}d`, icon: "🔥", color: "#F44336" },
+          { label: "Badges Earned", value: stats.badges, icon: "🎖️", color: "#C9A84C" },
+          { label: "Chat Messages", value: stats.totalMessages, icon: "💬", color: "#1A7A4A" },
+          { label: "Subjects Active", value: stats.subjectBreakdown.length, icon: "📚", color: "#1A4DB3" },
+        ].map(stat => (
+          <div key={stat.label} style={{ background: t.card, borderRadius: 14, padding: 16, borderTopWidth: 3, borderTopStyle: "solid", borderTopColor: stat.color, textAlign: "center" }}>
+            <div style={{ fontSize: 24, marginBottom: 6 }}>{stat.icon}</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: stat.color }}>{stat.value}</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted }}>{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Subject breakdown */}
+      <div style={{ background: t.card, borderRadius: 16, padding: 24, marginBottom: 20 }}>
+        <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 20 }}>Topics Completed by Subject</h3>
+        {stats.subjectBreakdown.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "20px 0", fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>No data yet — start completing topics!</div>
+        ) : (
+          stats.subjectBreakdown.map(sub => {
+            const maxCount = stats.subjectBreakdown[0].count;
+            return (
+              <div key={sub.subject} style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.text, fontWeight: 600 }}>{sub.subject}</span>
+                  <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>{sub.count} topics</span>
+                </div>
+                <div style={{ background: t.bg, borderRadius: 99, height: 10, overflow: "hidden" }}>
+                  <div style={{ width: `${sub.count / maxCount * 100}%`, height: "100%", background: "linear-gradient(90deg, #1A4DB3, #3468D1)", borderRadius: 99 }} />
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Test history */}
+      {stats.testHistory.length > 0 && (
+        <div style={{ background: t.card, borderRadius: 16, padding: 24, marginBottom: 20 }}>
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 20 }}>Recent Test Scores</h3>
+         <div style={{ display: "flex", gap: 12 }}>
+  {/* Y-axis scale */}
+  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: 200, paddingBottom: 24, fontFamily: "'Source Sans 3', sans-serif", fontSize: 10, color: t.textMuted }}>
+    <span>100%</span>
+    <span>75%</span>
+    <span>50%</span>
+    <span>25%</span>
+    <span>0%</span>
+  </div>
+  {/* Bars */}
+  <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: 8, height: 200, borderLeftWidth: 1, borderLeftStyle: "solid", borderLeftColor: t.cardBorder, borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder, paddingLeft: 8, paddingBottom: 24, position: "relative" }}>
+    {/* Grid lines */}
+    {[25, 50, 75].map(line => (
+      <div key={line} style={{ position: "absolute", left: 0, right: 0, bottom: `${line / 100 * 176 + 24}px`, borderTopWidth: 1, borderTopStyle: "dashed", borderTopColor: t.cardBorder, opacity: 0.3 }} />
+    ))}
+    {stats.testHistory.map((test, i) => (
+      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", height: "100%", justifyContent: "flex-end", position: "relative", zIndex: 1 }}>
+        <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.text, fontWeight: 700, marginBottom: 4 }}>{test.score}%</div>
+        <div style={{ width: "100%", maxWidth: 40, background: test.score >= 70 ? "linear-gradient(180deg, #2EAD6A, #1A7A4A)" : test.score >= 50 ? "linear-gradient(180deg, #E8CC80, #C9A84C)" : "linear-gradient(180deg, #FF6666, #F44336)", borderRadius: "6px 6px 0 0", height: `${test.score / 100 * 152}px`, minHeight: 4, transition: "height 0.6s" }} />
+        <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: t.textMuted, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 50, position: "absolute", bottom: -20 }}>{test.name}</div>
+      </div>
+    ))}
+  </div>
+</div>
+        </div>
+      )}
+
+      {/* Strong and weak subjects */}
+      {(stats.strongSubjects.length > 0 || stats.weakSubjects.length > 0) && (
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
+          <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: "#1A7A4A", marginBottom: 16 }}>💪 Strong Subjects</h3>
+            {stats.strongSubjects.map(sub => (
+              <div key={sub.subject} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder }}>
+                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text }}>{sub.subject}</span>
+                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: "#1A7A4A", fontWeight: 700 }}>{sub.avg}%</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: t.card, borderRadius: 16, padding: 24 }}>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: "#F44336", marginBottom: 16 }}>📚 Needs Improvement</h3>
+            {stats.weakSubjects.map(sub => (
+              <div key={sub.subject} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder }}>
+                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text }}>{sub.subject}</span>
+                <span style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: "#F44336", fontWeight: 700 }}>{sub.avg}%</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
