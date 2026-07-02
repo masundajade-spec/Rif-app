@@ -948,14 +948,16 @@ function DashboardView({ t, user, setScreen, isMobile }) {
   {lockedBadges.length > 0 && (
     <div style={{ marginTop: 16 }}>
       <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginBottom: 10 }}>Locked badges:</div>
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(4, 1fr)" : "repeat(6, 1fr)", gap: 8 }}>
-        {lockedBadges.slice(0, 6).map(badge => (
+     <div style={{ maxHeight: 200, overflowY: "auto", paddingRight: 8 }}>
+<div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(4, 1fr)" : "repeat(6, 1fr)", gap: 8 }}>
+  {lockedBadges.map(badge => (
           <div key={badge.id} style={{ textAlign: "center", padding: 8, background: t.bg, borderRadius: 10, opacity: 0.4 }}>
             <div style={{ fontSize: 24, marginBottom: 4, filter: "grayscale(100%)" }}>{badge.icon}</div>
             <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 9, color: t.textMuted }}>{badge.name}</div>
           </div>
         ))}
       </div>
+    </div>
     </div>
   )}
 </div>
