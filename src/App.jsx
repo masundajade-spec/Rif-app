@@ -192,6 +192,7 @@ const navItems = [
 ];
 
 const extraNavItems = [
+  { id: "Flashcards", icon: "🃏", label: "Flashcards" },
   { id: "Teacher", icon: "◎", label: "Teacher" },
   { id: "Parent", icon: "👨‍👩‍👧", label: "Parent" },
 ];
@@ -264,7 +265,7 @@ export default function App() {
       {screen === "Terms" && <TermsScreen t={t} setScreen={setScreen} />}
       {screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
-      {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin", "More"].includes(screen) && (
+      {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin", "More", "Flashcards"].includes(screen) && (
       <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} isMobile={isMobile} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast} fontScale={fontScale} />
       )}
     </div>
@@ -673,6 +674,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
     <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: t.text, marginBottom: 20 }}>More</h2>
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {[
+        { id: "Flashcards", icon: "🃏", label: "Flashcards", desc: "Quick revision cards" },
         { id: "Syllabus", icon: "✓", label: "Syllabus Tracker", desc: "Track your topics" },
         { id: "Videos", icon: "🎥", label: "Video Lessons", desc: "Watch teacher videos" },
         { id: "Teacher", icon: "◎", label: "Teacher Dashboard", desc: "Manage your lessons" },
@@ -694,6 +696,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
 )}
         {screen === "Teacher" && <TeacherView t={t} user={user} isMobile={isMobile} />}
         {screen === "Parent" && <ParentView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Flashcards" && <FlashcardsView t={t} user={user} isMobile={isMobile} />}
       </div>
      {isMobile && (
   <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: t.sidebar, zIndex: 100, borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#FFFFFF11" }}>
@@ -2950,6 +2953,223 @@ function AdminView({ t, user, isMobile }) {
               ))}
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+function FlashcardsView({ t, user, isMobile }) {
+  const [filter, setFilter] = useState("ZIMSEC");
+  const [level, setLevel] = useState("O-Level");
+  const [subjects, setSubjects] = useState([]);
+  const [subject, setSubject] = useState(null);
+  const [cards, setCards] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [sessionStats, setSessionStats] = useState({ gotIt: 0, studyMore: 0 });
+  const [studyMoreCards, setStudyMoreCards] = useState([]);
+  const [sessionDone, setSessionDone] = useState(false);
+
+  useEffect(() => {
+    loadSubjects();
+  }, [filter, level]);
+
+  async function loadSubjects() {
+    const { data } = await supabase
+      .from("flashcards")
+      .select("subject")
+      .eq("curriculum", filter)
+      .eq("level", level);
+    if (data) {
+      const unique = [...new Set(data.map(d => d.subject))];
+      setSubjects(unique);
+    }
+  }
+
+  async function startSession(subj) {
+    setLoading(true);
+    setSubject(subj);
+    setCurrentIndex(0);
+    setFlipped(false);
+    setSessionDone(false);
+    setSessionStats({ gotIt: 0, studyMore: 0 });
+    setStudyMoreCards([]);
+    const { data } = await supabase
+      .from("flashcards")
+      .select("*")
+      .eq("subject", subj)
+      .eq("curriculum", filter)
+      .eq("level", level);
+    if (data) setCards(data.sort(() => Math.random() - 0.5));
+    setLoading(false);
+  }
+
+  async function markCard(status) {
+    const card = cards[currentIndex];
+    setSessionStats(prev => ({
+      gotIt: status === "got_it" ? prev.gotIt + 1 : prev.gotIt,
+      studyMore: status === "study_more" ? prev.studyMore + 1 : prev.studyMore,
+    }));
+
+    if (status === "study_more") {
+      setStudyMoreCards(prev => [...prev, card]);
+    }
+
+    await supabase.from("flashcard_progress").upsert({
+      user_id: user.id,
+      flashcard_id: card.id,
+      status: status,
+      reviewed_at: new Date().toISOString(),
+    }, { onConflict: "user_id,flashcard_id" });
+
+    if (currentIndex < cards.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setFlipped(false);
+    } else {
+      setSessionDone(true);
+    }
+  }
+
+  function restart() {
+    setSubject(null);
+    setCards([]);
+    setCurrentIndex(0);
+    setFlipped(false);
+    setSessionDone(false);
+  }
+
+  // Subject selection screen
+  if (!subject) {
+    return (
+      <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 800, background: t.bg, minHeight: "100vh" }}>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: isMobile ? 22 : 28, color: t.text, marginBottom: 6 }}>
+          🃏 Flashcards
+        </h1>
+        <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24 }}>
+          Quick revision to test your memory
+        </p>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+          {["ZIMSEC", "Cambridge"].map(c => (
+            <button key={c} onClick={() => setFilter(c)} style={{ padding: "7px 18px", borderRadius: 99, background: filter === c ? "#C9A84C" : t.card, borderWidth: 1, borderStyle: "solid", borderColor: filter === c ? "#C9A84C" : t.cardBorder, color: filter === c ? "#0A1628" : t.textMuted, fontSize: 13, fontWeight: filter === c ? 700 : 400, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif" }}>{c}</button>
+          ))}
+          {["O-Level", "A-Level"].map(l => (
+            <button key={l} onClick={() => setLevel(l)} style={{ padding: "7px 18px", borderRadius: 99, background: level === l ? "#1A4DB3" : t.card, borderWidth: 1, borderStyle: "solid", borderColor: level === l ? "#1A4DB3" : t.cardBorder, color: level === l ? "#fff" : t.textMuted, fontSize: 13, fontWeight: level === l ? 700 : 400, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif" }}>{l}</button>
+          ))}
+        </div>
+
+        {subjects.length === 0 ? (
+          <div style={{ background: t.card, borderRadius: 16, padding: 40, textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🃏</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>No flashcards for this curriculum yet. Check back soon!</div>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
+            {subjects.map(s => (
+              <div key={s} onClick={() => startSession(s)} style={{ background: t.card, borderRadius: 14, padding: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: "#C9A84C" }}>
+                <div>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: t.text, fontWeight: 700 }}>{s}</div>
+                  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>{filter} {level}</div>
+                </div>
+                <span style={{ fontSize: 24 }}>🃏</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Loading
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: t.bg }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Loading cards...</div>
+    </div>
+  );
+
+  // Session complete
+  if (sessionDone) {
+    const total = sessionStats.gotIt + sessionStats.studyMore;
+    const percent = total > 0 ? Math.round(sessionStats.gotIt / total * 100) : 0;
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: t.bg, padding: 24 }}>
+        <div style={{ background: t.card, borderRadius: 20, padding: "40px 36px", maxWidth: 440, width: "100%", textAlign: "center" }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>{percent >= 70 ? "🎉" : "💪"}</div>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, color: t.text, marginBottom: 8 }}>Session Complete!</h2>
+          <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 15, color: t.textMuted, marginBottom: 24 }}>{subject}</div>
+          <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+            <div style={{ flex: 1, background: "#1A7A4A22", borderRadius: 12, padding: 16 }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 700, color: "#1A7A4A" }}>{sessionStats.gotIt}</div>
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>Got it ✓</div>
+            </div>
+            <div style={{ flex: 1, background: "#C9A84C22", borderRadius: 12, padding: 16 }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 700, color: "#C9A84C" }}>{sessionStats.studyMore}</div>
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>Study more</div>
+            </div>
+          </div>
+          <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, marginBottom: 24 }}>
+            You knew {percent}% of the cards!
+          </div>
+          {studyMoreCards.length > 0 && (
+  <div style={{ background: t.bg, borderRadius: 12, padding: 16, marginBottom: 24, textAlign: "left" }}>
+    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 12 }}>📖 Topics to review:</div>
+    {[...new Set(studyMoreCards.map(c => c.topic))].map(topic => (
+      <div key={topic} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#C9A84C", marginBottom: 6, display: "flex", gap: 8 }}>
+        <span>•</span>{topic}
+      </div>
+    ))}
+  </div>
+)}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => startSession(subject)} style={{ flex: 1, background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 12, padding: "14px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+              Study Again
+            </button>
+            <button onClick={restart} style={{ flex: 1, background: "transparent", borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 12, padding: "14px", color: t.text, fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+              Choose Subject
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Flashcard display
+  const card = cards[currentIndex];
+  return (
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 640, margin: "0 auto", background: t.bg, minHeight: "100vh" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <button onClick={restart} style={{ background: "transparent", border: "none", color: "#C9A84C", cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>← Exit</button>
+        <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted }}>{currentIndex + 1} / {cards.length}</div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ background: t.card, borderRadius: 99, height: 6, overflow: "hidden", marginBottom: 32 }}>
+        <div style={{ width: `${(currentIndex + 1) / cards.length * 100}%`, height: "100%", background: "#C9A84C", borderRadius: 99, transition: "width 0.3s" }} />
+      </div>
+
+      {/* Card */}
+      <div onClick={() => setFlipped(!flipped)} style={{ background: flipped ? "linear-gradient(135deg, #1A7A4A, #2EAD6A)" : "linear-gradient(135deg, #0D2B6B, #1A4DB3)", borderRadius: 20, padding: isMobile ? "40px 24px" : "60px 40px", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", textAlign: "center", transition: "all 0.3s" }}>
+        <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: flipped ? "#C8F0D8" : "#C9A84C", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 16 }}>
+          {flipped ? "Answer" : "Question"}
+        </div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 20 : 24, color: "#fff", lineHeight: 1.4 }}>
+          {flipped ? card.back : card.front}
+        </div>
+        <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: flipped ? "#C8F0D8" : "#A0AECB", marginTop: 24 }}>
+          Tap to {flipped ? "see question" : "reveal answer"}
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      {flipped && (
+        <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+          <button onClick={() => markCard("study_more")} style={{ flex: 1, background: "#C9A84C22", borderWidth: 1, borderStyle: "solid", borderColor: "#C9A84C", borderRadius: 12, padding: "16px", color: "#C9A84C", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 15 }}>
+            📖 Study More
+          </button>
+          <button onClick={() => markCard("got_it")} style={{ flex: 1, background: "linear-gradient(135deg, #1A7A4A, #2EAD6A)", border: "none", borderRadius: 12, padding: "16px", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 15 }}>
+            ✓ Got It
+          </button>
         </div>
       )}
     </div>
