@@ -194,6 +194,7 @@ const navItems = [
 const extraNavItems = [
   { id: "Flashcards", icon: "🃏", label: "Flashcards" },
   { id: "Analytics", icon: "📊", label: "Analytics" },
+  { id: "Leaderboard", icon: "🏆", label: "Leaderboard" },
   { id: "Teacher", icon: "◎", label: "Teacher" },
   { id: "Parent", icon: "👨‍👩‍👧", label: "Parent" },
 ];
@@ -266,7 +267,7 @@ export default function App() {
       {screen === "Terms" && <TermsScreen t={t} setScreen={setScreen} />}
       {screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
       {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
-      {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin", "More", "Flashcards", "Analytics"].includes(screen) && (
+      {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin", "More", "Flashcards", "Analytics", "Leaderboard"].includes(screen) && (
       <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} isMobile={isMobile} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast} fontScale={fontScale} />
       )}
     </div>
@@ -677,6 +678,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
       {[
         { id: "Flashcards", icon: "🃏", label: "Flashcards", desc: "Quick revision cards" },
         { id: "Analytics", icon: "📊", label: "Study Analytics", desc: "Track your progress" },
+        { id: "Leaderboard", icon: "🏆", label: "Leaderboard", desc: "See top students" },
         { id: "Syllabus", icon: "✓", label: "Syllabus Tracker", desc: "Track your topics" },
         { id: "Videos", icon: "🎥", label: "Video Lessons", desc: "Watch teacher videos" },
         { id: "Teacher", icon: "◎", label: "Teacher Dashboard", desc: "Manage your lessons" },
@@ -700,6 +702,7 @@ function AppShell({ t, isDark, setIsDark, screen, setScreen, user, handleLogout,
         {screen === "Parent" && <ParentView t={t} user={user} isMobile={isMobile} />}
         {screen === "Flashcards" && <FlashcardsView t={t} user={user} isMobile={isMobile} />}
         {screen === "Analytics" && <AnalyticsView t={t} user={user} isMobile={isMobile} />}
+        {screen === "Leaderboard" && <LeaderboardView t={t} user={user} isMobile={isMobile} />}
       </div>
      {isMobile && (
   <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: t.sidebar, zIndex: 100, borderTopWidth: 1, borderTopStyle: "solid", borderTopColor: "#FFFFFF11" }}>
@@ -3455,6 +3458,159 @@ function AnalyticsView({ t, user, isMobile }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+function LeaderboardView({ t, user, isMobile }) {
+  const [leaders, setLeaders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [myRank, setMyRank] = useState(null);
+  const [filter, setFilter] = useState("points");
+
+  useEffect(() => {
+    loadLeaderboard();
+  }, [filter]);
+
+  async function loadLeaderboard() {
+    setLoading(true);
+    try {
+      let orderColumn = "total_points";
+      if (filter === "topics") orderColumn = "topics_done";
+      if (filter === "tests") orderColumn = "tests_taken";
+      if (filter === "badges") orderColumn = "badges";
+      if (filter === "streak") orderColumn = "streak";
+
+      const { data } = await supabase
+        .from("leaderboard")
+        .select("*")
+        .order(orderColumn, { ascending: false })
+        .limit(50);
+
+      if (data) {
+        setLeaders(data);
+        const myIndex = data.findIndex(l => l.user_id === user.id);
+        if (myIndex !== -1) setMyRank({ rank: myIndex + 1, ...data[myIndex] });
+      }
+    } catch (e) {
+      console.log("Leaderboard error:", e);
+    }
+    setLoading(false);
+  }
+
+  const filters = [
+    { id: "points", label: "🏆 Overall", column: "total_points" },
+    { id: "topics", label: "✓ Topics", column: "topics_done" },
+    { id: "tests", label: "📝 Tests", column: "tests_taken" },
+    { id: "badges", label: "🎖️ Badges", column: "badges" },
+    { id: "streak", label: "🔥 Streak", column: "streak" },
+  ];
+
+  function getValue(leader) {
+    if (filter === "topics") return leader.topics_done;
+    if (filter === "tests") return leader.tests_taken;
+    if (filter === "badges") return leader.badges;
+    if (filter === "streak") return `${leader.streak}d`;
+    return leader.total_points;
+  }
+
+  function getMedal(rank) {
+    if (rank === 1) return "🥇";
+    if (rank === 2) return "🥈";
+    if (rank === 3) return "🥉";
+    return `#${rank}`;
+  }
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: t.bg }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Loading leaderboard...</div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: isMobile ? "16px" : "32px 36px", maxWidth: 800, background: t.bg, minHeight: "100vh" }}>
+      <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: isMobile ? 22 : 28, color: t.text, marginBottom: 6 }}>
+        🏆 Leaderboard
+      </h1>
+      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24 }}>
+        See how you rank against other students
+      </p>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {filters.map(f => (
+          <button key={f.id} onClick={() => setFilter(f.id)} style={{
+            padding: "8px 16px", borderRadius: 99,
+            background: filter === f.id ? "#C9A84C" : t.card,
+            borderWidth: 1, borderStyle: "solid",
+            borderColor: filter === f.id ? "#C9A84C" : t.cardBorder,
+            color: filter === f.id ? "#0A1628" : t.textMuted,
+            fontSize: 13, fontWeight: filter === f.id ? 700 : 400,
+            cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+          }}>{f.label}</button>
+        ))}
+      </div>
+
+      {/* My rank card */}
+      {myRank && (
+        <div style={{ background: "linear-gradient(135deg, #0D2B6B, #1A4DB3)", borderRadius: 16, padding: 20, marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#C9A84C" }}>{getMedal(myRank.rank)}</div>
+            <div>
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#A0AECB" }}>Your Rank</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#fff", fontWeight: 700 }}>{myRank.full_name || "You"}</div>
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: "#C9A84C" }}>{getValue(myRank)}</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: "#A0AECB" }}>{filter === "points" ? "points" : filter}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Leaderboard list */}
+      <div style={{ background: t.card, borderRadius: 16, overflow: "hidden" }}>
+        {leaders.length === 0 ? (
+          <div style={{ padding: 40, textAlign: "center", fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>
+            No students on the leaderboard yet. Be the first!
+          </div>
+        ) : (
+          leaders.map((leader, i) => {
+            const isMe = leader.user_id === user.id;
+            return (
+              <div key={leader.user_id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "14px 20px",
+                borderBottomWidth: i < leaders.length - 1 ? 1 : 0, borderBottomStyle: "solid", borderBottomColor: t.cardBorder,
+                background: isMe ? "#C9A84C15" : "transparent",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: i < 3 ? 24 : 16, fontWeight: 700, color: i < 3 ? "#C9A84C" : t.textMuted, minWidth: 40, textAlign: "center" }}>
+                    {getMedal(i + 1)}
+                  </div>
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${i < 3 ? "#C9A84C, #E8CC80" : "#1A4DB3, #3468D1"})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                    {leader.full_name?.charAt(0).toUpperCase() || "S"}
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, fontWeight: 600 }}>
+                      {leader.full_name || "Student"} {isMe && <span style={{ color: "#C9A84C" }}>(You)</span>}
+                    </div>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>{leader.curriculum || "Student"}</div>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: i < 3 ? "#C9A84C" : t.text }}>
+                    {getValue(leader)}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div style={{ textAlign: "center", marginTop: 20, fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>
+        Points = Topics×10 + Tests×5 + Badges×20 + Streak×15
+      </div>
     </div>
   );
 }

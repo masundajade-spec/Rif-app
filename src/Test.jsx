@@ -284,9 +284,19 @@ export default function TestView({ t, user, isMobile }) {
             <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginBottom: 8 }}>
               Question {index + 1} of {questions.length} · {q.marks} mark{q.marks > 1 ? "s" : ""}
             </div>
-            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 16, color: t.text, fontWeight: 600, marginBottom: 20, lineHeight: 1.5 }}>
-              {q.question}
-            </div>
+           <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 20 }}>
+  <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 16, color: t.text, fontWeight: 600, lineHeight: 1.5, flex: 1 }}>
+    {q.question}
+  </div>
+  <button onClick={() => {
+    const utterance = new SpeechSynthesisUtterance(`${q.question}. Option A: ${q.option_a}. Option B: ${q.option_b}. Option C: ${q.option_c}. Option D: ${q.option_d}`);
+    utterance.rate = 0.9;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }} style={{ background: "#1A4DB322", border: "none", borderRadius: 8, padding: "8px 12px", cursor: "pointer", flexShrink: 0, fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: "#1A4DB3", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }} title="Read question aloud">
+    🔊 Read
+  </button>
+</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {["A", "B", "C", "D"].map(option => {
                 const optionText = q[`option_${option.toLowerCase()}`];
