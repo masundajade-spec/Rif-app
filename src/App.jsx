@@ -751,6 +751,9 @@ function DashboardView({ t, user, setScreen, isMobile }) {
   const [loading, setLoading] = useState(true);
   const [earnedBadges, setEarnedBadges] = useState([]);
   const [lockedBadges, setLockedBadges] = useState([]);
+  const [streak, setStreak] = useState(0);
+  const [reminderTime, setReminderTime] = useState("18:00");
+  const [reminderSet, setReminderSet] = useState(false);
 
   useEffect(() => {
     if (user) loadDashboard();
@@ -835,9 +838,57 @@ function DashboardView({ t, user, setScreen, isMobile }) {
       }
     }
   }
+
+  // Load and update study streak
+const today = new Date().toISOString().split("T")[0];
+const { data: reminderData } = await supabase
+  .from("study_reminders")
+  .select("*")
+  .eq("user_id", user.id);
+
+if (reminderData && reminderData.length > 0) {
+  const reminder = reminderData[0];
+  setReminderTime(reminder.reminder_time || "18:00");
+  setReminderSet(true);
+  
+  const lastStudied = reminder.last_studied;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  
+  let newStreak = reminder.streak || 0;
+  if (lastStudied !== today) {
+    if (lastStudied === yesterday) {
+      newStreak = newStreak + 1;
+    } else {
+      newStreak = 1;
+    }
+    await supabase.from("study_reminders").update({
+      streak: newStreak,
+      last_studied: today,
+    }).eq("user_id", user.id);
+  }
+  setStreak(newStreak);
+} else {
+  // First time - create streak record
+  await supabase.from("study_reminders").insert({
+    user_id: user.id,
+    reminder_time: "18:00",
+    streak: 1,
+    last_studied: today,
+  });
+  setStreak(1);
+}
 }
     setLoading(false);
   }
+  async function saveReminder() {
+  await supabase.from("study_reminders").upsert({
+    user_id: user.id,
+    reminder_time: reminderTime,
+    enabled: true,
+  }, { onConflict: "user_id" });
+  setReminderSet(true);
+  alert("Study reminder set for " + reminderTime + " daily!");
+}
 
   const overallPercent = totalTopics > 0 ? Math.round(doneTopics / totalTopics * 100) : 0;
   const hour = new Date().getHours();
@@ -854,7 +905,19 @@ function DashboardView({ t, user, setScreen, isMobile }) {
         <span style={{ fontSize: 12 }}>📋</span>
         </div>
         </div>
-
+      {/* Study Streak Banner */}
+<div style={{ background: "linear-gradient(135deg, #C9A84C, #E8CC80)", borderRadius: 16, padding: isMobile ? "16px 20px" : "20px 24px", marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+    <div style={{ fontSize: 40 }}>🔥</div>
+    <div>
+      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0A1628" }}>{streak} Day{streak !== 1 ? "s" : ""}</div>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#0A1628", opacity: 0.8 }}>Study streak · Keep it going!</div>
+    </div>
+  </div>
+  <button onClick={() => window.open("https://wa.me/263774997490?text=Hi RIF-App, I'd like to join daily study reminders!", "_blank")} style={{ background: "#0A1628", border: "none", borderRadius: 8, padding: "10px 18px", color: "#C9A84C", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+    💬 Get WhatsApp Reminders
+  </button>
+</div>
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
         {[
           { label: "Overall Progress", value: `${overallPercent}%`, sub: "Across all subjects", color: "#1A4DB3" },
@@ -967,6 +1030,7 @@ function DashboardView({ t, user, setScreen, isMobile }) {
     </div>
   );
 }
+
 
 function SyllabusView({ t, user, isMobile }) {
   const [subjects, setSubjects] = useState([]);
