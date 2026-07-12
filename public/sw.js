@@ -33,28 +33,14 @@ self.addEventListener("activate", event => {
 
 // Fetch - serve from cache when offline
 self.addEventListener("fetch", event => {
-  // Only cache GET requests
   if (event.request.method !== "GET") return;
-  
-  // Skip Supabase API calls - they need fresh data
   if (event.request.url.includes("supabase.co")) return;
+  if (event.request.url.includes("anthropic.com")) return;
 
   event.respondWith(
-    caches.match(event.request).then(response => {
-      // Return cached version or fetch from network
-      return response || fetch(event.request).then(fetchResponse => {
-        // Cache successful responses
-        return caches.open(CACHE_NAME).then(cache => {
-          if (fetchResponse.status === 200) {
-            cache.put(event.request, fetchResponse.clone());
-          }
-          return fetchResponse;
-        });
-      }).catch(() => {
-        // If both fail and it's a page request, show cached home
-        if (event.request.mode === "navigate") {
-          return caches.match("/");
-        }
+    fetch(event.request).catch(() => {
+      return caches.match(event.request).then(response => {
+        return response || caches.match("/");
       });
     })
   );
