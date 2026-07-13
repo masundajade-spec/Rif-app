@@ -920,7 +920,7 @@ if (reminderData && reminderData.length > 0) {
       <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#0A1628", opacity: 0.8 }}>Study streak · Keep it going!</div>
     </div>
   </div>
-  <button onClick={() => window.open("https://wa.me/263774997490?text=Hi RIF-App, I'd like to join daily study reminders!", "_blank")} style={{ background: "#0A1628", border: "none", borderRadius: 8, padding: "10px 18px", color: "#C9A84C", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+  <button onClick={() => window.open("https://chat.whatsapp.com/HaOyvdgcl2cF58UqSRTsCJ", "_blank")} style={{ background: "#0A1628", border: "none", borderRadius: 8, padding: "10px 18px", color: "#C9A84C", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
     💬 Get WhatsApp Reminders
   </button>
 </div>
