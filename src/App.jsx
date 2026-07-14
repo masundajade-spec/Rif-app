@@ -1906,7 +1906,17 @@ function ChatView({ t, user, isMobile }) {
     setSending(false);
     await loadMessages(activeRoom);
   }
-  
+  async function deleteMessage(messageId) {
+  if (!confirm("Delete this message?")) return;
+  await supabase.from("messages").delete().eq("id", messageId);
+  setMessages(prev => prev.filter(m => m.id !== messageId));
+}
+
+function containsProfanity(text) {
+  const badWords = ["fuck", "shit", "bitch", "asshole", "cunt", "nigger", "faggot", "whore", "slut"];
+  const lower = text.toLowerCase();
+  return badWords.some(word => lower.includes(word));
+}
  return (
     <div style={{ display: "flex", height: "100vh", flexDirection: isMobile ? "column" : "row" }}>
       <div style={{
@@ -1992,18 +2002,31 @@ function ChatView({ t, user, isMobile }) {
                 No messages yet — start the discussion! 🎓
               </div>
             )}
-            {messages.map(msg => {
+           {messages.map(msg => {
               const isMe = msg.user_id === user?.id;
+              const isOffensive = containsProfanity(msg.content);
               return (
                 <div key={msg.id} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", gap: 10, alignItems: "flex-end", marginBottom: 12 }}>
                   <div style={{ width: 30, height: 30, borderRadius: "50%", background: isMe ? "linear-gradient(135deg, #C9A84C, #E8CC80)" : "linear-gradient(135deg, #1A4DB3, #3468D1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                     {msg.user_name?.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ maxWidth: "65%" }}>
-                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted, marginBottom: 3, textAlign: isMe ? "right" : "left" }}>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted, marginBottom: 3, textAlign: isMe ? "right" : "left", display: "flex", alignItems: "center", gap: 6, justifyContent: isMe ? "flex-end" : "flex-start" }}>
                       {isMe ? "You" : msg.user_name}
+                      {isMe && (
+                        <span onClick={() => deleteMessage(msg.id)} style={{ cursor: "pointer", opacity: 0.6, fontSize: 12 }} title="Delete message">🗑️</span>
+                      )}
                     </div>
-                    <div style={{ background: isMe ? "linear-gradient(135deg, #C9A84C, #E8CC80)" : t.card, borderRadius: 12, padding: "10px 14px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: isMe ? "#0A1628" : t.text }}>
+                    <div style={{
+                      background: isMe ? "linear-gradient(135deg, #C9A84C, #E8CC80)" : t.card,
+                      borderRadius: 12, padding: "10px 14px",
+                      fontFamily: "'Source Sans 3', sans-serif", fontSize: 14,
+                      color: isMe ? "#0A1628" : t.text,
+                      filter: isOffensive && !isMe ? "blur(6px)" : "none",
+                      position: "relative",
+                    }}
+                    onClick={() => isOffensive && !isMe && alert("This message was flagged as inappropriate. Content hidden for your safety.")}
+                    >
                       {msg.content}
                     </div>
                   </div>
