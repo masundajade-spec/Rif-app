@@ -2080,7 +2080,7 @@ padding: isMobile ? "8px 12px 80px 12px" : "16px 24px",
     </div>
   );
 }
-function NotesView({ t, user }) {
+function NotesView({ t, user, isMobile }) {
   const [subject, setSubject] = useState(null);
   const [topic, setTopic] = useState(null);
   const [notes, setNotes] = useState("");
@@ -2192,10 +2192,12 @@ Keep it relevant to the Zimbabwe ${filter} curriculum and exam style.`,
     });
   }
 
-  return (
-    <div style={{ display: "flex", height: "100vh", background: t.bg }}>
+  const [mobileStep, setMobileStep] = useState("subjects"); // subjects, topics, notes
+
+return (
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: "100vh", background: t.bg }}>
       {/* Sidebar */}
-      <div style={{ width: 260, background: t.card, borderRightWidth: 1, borderRightStyle: "solid", borderRightColor: t.cardBorder, overflowY: "auto", flexShrink: 0 }}>
+      <div style={{ width: isMobile ? "100%" : 260, height: isMobile ? (mobileStep === "subjects" ? "100vh" : "0") : "auto", display: isMobile && mobileStep !== "subjects" ? "none" : "block", background: t.card, borderRightWidth: isMobile ? 0 : 1, borderRightStyle: "solid", borderRightColor: t.cardBorder, borderBottomWidth: isMobile ? 1 : 0, borderBottomStyle: "solid", borderBottomColor: t.cardBorder, overflowY: "auto", flexShrink: 0, paddingBottom: isMobile ? 90 : 0 }}>
         <div style={{ padding: "20px 16px", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder }}>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, fontWeight: 700, marginBottom: 12 }}>📖 Study Notes</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
@@ -2213,8 +2215,9 @@ Keep it relevant to the Zimbabwe ${filter} curriculum and exam style.`,
         {/* Subjects */}
         <div style={{ padding: 8 }}>
           {subjects.map(s => (
-            <div key={s} onClick={() => { setSubject(s); setNotes(""); setTopic(null); }} style={{ padding: "10px 12px", borderRadius: 8, marginBottom: 2, cursor: "pointer", background: subject === s ? "#1A4DB322" : "transparent", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, fontWeight: subject === s ? 700 : 400, color: subject === s ? "#1A4DB3" : t.text }}>
+            <div key={s} onClick={() => { setSubject(s); setNotes(""); setTopic(null); if (isMobile) setMobileStep("topics"); }} style={{ padding: "10px 12px", borderRadius: 8, marginBottom: 2, cursor: "pointer", background: subject === s ? "#1A4DB322" : "transparent", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, fontWeight: subject === s ? 700 : 400, color: subject === s ? "#1A4DB3" : t.text, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               {s}
+              {isMobile && <span style={{ color: t.textMuted }}>→</span>}
             </div>
           ))}
         </div>
@@ -2222,14 +2225,28 @@ Keep it relevant to the Zimbabwe ${filter} curriculum and exam style.`,
 
       {/* Topics list */}
       {subject && (
-        <div style={{ width: 220, background: t.bg, borderRightWidth: 1, borderRightStyle: "solid", borderRightColor: t.cardBorder, overflowY: "auto", flexShrink: 0 }}>
-          <div style={{ padding: "16px 14px", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder }}>
-            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, fontWeight: 700, color: t.text }}>{subject}</div>
-            <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted }}>{topics.length} topics</div>
+        <div style={{
+          width: isMobile ? "100%" : 220,
+          display: isMobile && mobileStep !== "topics" ? "none" : "block",
+          background: t.bg,
+          borderRightWidth: isMobile ? 0 : 1, borderRightStyle: "solid", borderRightColor: t.cardBorder,
+          borderBottomWidth: isMobile ? 1 : 0, borderBottomStyle: "solid", borderBottomColor: t.cardBorder,
+          overflowY: "auto", flexShrink: 0,
+          height: isMobile ? "100vh" : "auto",
+          paddingBottom: isMobile ? 90 : 0,
+        }}>
+          <div style={{ padding: "16px 14px", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: t.cardBorder, display: "flex", alignItems: "center", gap: 10 }}>
+            {isMobile && (
+              <span onClick={() => setMobileStep("subjects")} style={{ cursor: "pointer", color: "#C9A84C", fontSize: 14 }}>← Back</span>
+            )}
+            <div>
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, fontWeight: 700, color: t.text }}>{subject}</div>
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted }}>{topics.length} topics</div>
+            </div>
           </div>
           <div style={{ padding: 8 }}>
             {topics.map(tp => (
-              <div key={tp.id} onClick={() => generateNotes(tp.topic_name)} style={{ padding: "10px 12px", borderRadius: 8, marginBottom: 2, cursor: "pointer", background: topic === tp.topic_name ? "#C9A84C22" : "transparent", borderLeftWidth: topic === tp.topic_name ? 3 : 0, borderLeftStyle: "solid", borderLeftColor: "#C9A84C" }}>
+              <div key={tp.id} onClick={() => { generateNotes(tp.topic_name); if (isMobile) setMobileStep("notes"); }} style={{ padding: "10px 12px", borderRadius: 8, marginBottom: 2, cursor: "pointer", background: topic === tp.topic_name ? "#C9A84C22" : "transparent", borderLeftWidth: topic === tp.topic_name ? 3 : 0, borderLeftStyle: "solid", borderLeftColor: "#C9A84C" }}>
                 <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: topic === tp.topic_name ? "#C9A84C" : t.text, fontWeight: topic === tp.topic_name ? 700 : 400 }}>
                   {tp.topic_order}. {tp.topic_name}
                 </div>
@@ -2240,35 +2257,44 @@ Keep it relevant to the Zimbabwe ${filter} curriculum and exam style.`,
       )}
 
       {/* Notes content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "32px 36px" }}>
+      <div style={{
+        flex: 1, overflowY: "auto",
+        padding: isMobile ? "16px" : "32px 36px",
+        display: isMobile && mobileStep !== "notes" ? "none" : "block",
+        height: isMobile ? "100vh" : "auto",
+      }}>
+        {isMobile && topic && (
+          <span onClick={() => setMobileStep("topics")} style={{ cursor: "pointer", color: "#C9A84C", fontSize: 14, fontFamily: "'Source Sans 3', sans-serif", display: "block", marginBottom: 16 }}>← Back to Topics</span>
+        )}
+
         {!topic && !loading && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: 16, padding: "20px", textAlign: "center" }}>
             <div style={{ fontSize: 64 }}>📖</div>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: t.text, fontWeight: 700 }}>Select a Topic</div>
-            <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, textAlign: "center" }}>Choose a subject and topic from the left to generate AI study notes instantly</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 20 : 24, color: t.text, fontWeight: 700 }}>Select a Topic</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, textAlign: "center" }}>Choose a subject and topic to generate AI study notes instantly</div>
           </div>
         )}
 
         {loading && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: 16, padding: "20px", textAlign: "center" }}>
             <div style={{ fontSize: 48 }}>✨</div>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: t.text }}>Generating Notes...</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 18 : 22, color: t.text }}>Generating Notes...</div>
             <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>AI is writing your study notes for {topic}</div>
           </div>
         )}
 
         {notes && !loading && (
-          <div style={{ maxWidth: 720 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+          <div style={{ maxWidth: isMobile ? "100%" : 720 }}>
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "flex-start", gap: isMobile ? 12 : 0, marginBottom: 24 }}>
               <div>
                 <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: "#C9A84C", fontWeight: 600, marginBottom: 4 }}>{filter} {level} · {subject}</div>
-                <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, color: t.text, fontWeight: 700 }}>{topic}</h1>
+                <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 20 : 26, color: t.text, fontWeight: 700 }}>{topic}</h1>
               </div>
-              <button onClick={() => generateNotes(topic)} style={{ background: t.card, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 8, padding: "8px 16px", color: t.text, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
+              <button onClick={() => generateNotes(topic)} style={{ background: t.card, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 8, padding: "8px 16px", color: t.text, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, flexShrink: 0 }}>
                 🔄 Regenerate
               </button>
             </div>
-            <div style={{ background: t.card, borderRadius: 16, padding: "28px 32px", lineHeight: 1.8 }}>
+            <div style={{ background: t.card, borderRadius: 16, padding: isMobile ? "18px 16px" : "28px 32px", lineHeight: 1.8 }}>
               {formatNotes(notes)}
             </div>
           </div>
