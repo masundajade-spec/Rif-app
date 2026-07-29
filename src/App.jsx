@@ -2071,7 +2071,7 @@ padding: isMobile ? "8px 12px 80px 12px" : "16px 24px",
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, background: t.bg, padding: "20px", textAlign: "center" }}>
+        <div style={{ flex: 1, display: isMobile ? "none" : "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, background: t.bg, padding: "20px", textAlign: "center" }}>
           <div style={{ fontSize: 56 }}>💬</div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: t.text, fontWeight: 700 }}>Select a Chat Room</div>
           <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Choose a subject from the left</div>
@@ -3515,6 +3515,8 @@ function LeaderboardView({ t, user, isMobile }) {
   const [loading, setLoading] = useState(true);
   const [myRank, setMyRank] = useState(null);
   const [filter, setFilter] = useState("points");
+  const [hidden, setHidden] = useState(false);
+  const [savingHidden, setSavingHidden] = useState(false);
 
   useEffect(() => {
     loadLeaderboard();
@@ -3522,6 +3524,8 @@ function LeaderboardView({ t, user, isMobile }) {
 
   async function loadLeaderboard() {
     setLoading(true);
+    const { data: profileData } = await supabase.from("profiles").select("leaderboard_hidden").eq("id", user.id).single();
+    if (profileData) setHidden(profileData.leaderboard_hidden || false);
     try {
       let orderColumn = "total_points";
       if (filter === "topics") orderColumn = "topics_done";
@@ -3544,6 +3548,15 @@ function LeaderboardView({ t, user, isMobile }) {
       console.log("Leaderboard error:", e);
     }
     setLoading(false);
+  }
+
+  async function toggleVisibility() {
+    setSavingHidden(true);
+    const newValue = !hidden;
+    await supabase.from("profiles").update({ leaderboard_hidden: newValue }).eq("id", user.id);
+    setHidden(newValue);
+    setSavingHidden(false);
+    loadLeaderboard();
   }
 
   const filters = [
@@ -3585,18 +3598,32 @@ function LeaderboardView({ t, user, isMobile }) {
       </p>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
-        {filters.map(f => (
-          <button key={f.id} onClick={() => setFilter(f.id)} style={{
-            padding: "8px 16px", borderRadius: 99,
-            background: filter === f.id ? "#C9A84C" : t.card,
-            borderWidth: 1, borderStyle: "solid",
-            borderColor: filter === f.id ? "#C9A84C" : t.cardBorder,
-            color: filter === f.id ? "#0A1628" : t.textMuted,
-            fontSize: 13, fontWeight: filter === f.id ? 700 : 400,
-            cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
-          }}>{f.label}</button>
-        ))}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {filters.map(f => (
+            <button key={f.id} onClick={() => setFilter(f.id)} style={{
+              padding: "8px 16px", borderRadius: 99,
+              background: filter === f.id ? "#C9A84C" : t.card,
+              borderWidth: 1, borderStyle: "solid",
+              borderColor: filter === f.id ? "#C9A84C" : t.cardBorder,
+              color: filter === f.id ? "#0A1628" : t.textMuted,
+              fontSize: 13, fontWeight: filter === f.id ? 700 : 400,
+              cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+            }}>{f.label}</button>
+          ))}
+        </div>
+        <button onClick={toggleVisibility} disabled={savingHidden} style={{
+          padding: "8px 16px", borderRadius: 99,
+          background: hidden ? "#F4433622" : t.card,
+          borderWidth: 1, borderStyle: "solid",
+          borderColor: hidden ? "#F44336" : t.cardBorder,
+          color: hidden ? "#F44336" : t.textMuted,
+          fontSize: 12, fontWeight: 600,
+          cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+          display: "flex", alignItems: "center", gap: 6,
+        }}>
+          {hidden ? "🙈 Hidden from leaderboard" : "👁️ Visible on leaderboard"}
+        </button>
       </div>
 
       {/* My rank card */}
