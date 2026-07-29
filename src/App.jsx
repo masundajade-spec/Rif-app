@@ -1046,6 +1046,12 @@ function SyllabusView({ t, user, isMobile }) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ZIMSEC");
   const [level, setLevel] = useState("O-Level");
+  const [showSuggestModal, setShowSuggestModal] = useState(false);
+  const [suggestType, setSuggestType] = useState("missing_topic");
+  const [suggestText, setSuggestText] = useState("");
+  const [suggestNotes, setSuggestNotes] = useState("");
+  const [suggestSending, setSuggestSending] = useState(false);
+  const [suggestSuccess, setSuggestSuccess] = useState(false);
 
   useEffect(() => {
     loadSubjects();
@@ -1108,6 +1114,29 @@ function SyllabusView({ t, user, isMobile }) {
     setProgress(prev => ({ ...prev, [topicId]: status }));
   }
 
+  async function submitSuggestion() {
+    if (!suggestText.trim()) return;
+    setSuggestSending(true);
+    await supabase.from("content_suggestions").insert({
+      user_id: user.id,
+      user_name: user?.user_metadata?.full_name || user?.email || "Student",
+      subject: activeSubject,
+      curriculum: filter,
+      level: level,
+      suggestion_type: suggestType,
+      suggested_topic: suggestText.trim(),
+      notes: suggestNotes.trim(),
+    });
+    setSuggestSending(false);
+    setSuggestSuccess(true);
+    setSuggestText("");
+    setSuggestNotes("");
+    setTimeout(() => {
+      setSuggestSuccess(false);
+      setShowSuggestModal(false);
+    }, 2000);
+  }
+
   const done = topics.filter(t => progress[t.id] === "done").length;
   const inProgress = topics.filter(t => progress[t.id] === "in_progress").length;
   const percent = topics.length > 0 ? Math.round(done / topics.length * 100) : 0;
@@ -1123,12 +1152,19 @@ function SyllabusView({ t, user, isMobile }) {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 1000, background: t.bg, minHeight: "100vh" }}>
-      <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, color: t.text, marginBottom: 6 }}>
-        Syllabus Tracker
-      </h1>
-      <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 24 }}>
-        Track every topic across your subjects
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 6 }}>
+        <div>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, color: t.text }}>
+            Syllabus Tracker
+          </h1>
+          <p style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>
+            Track every topic across your subjects
+          </p>
+        </div>
+        <button onClick={() => setShowSuggestModal(true)} style={{ background: "#1A4DB322", borderWidth: 1, borderStyle: "solid", borderColor: "#1A4DB3", borderRadius: 10, padding: "10px 16px", color: "#1A4DB3", cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>
+          💡 Suggest Missing Topic
+        </button>
+      </div>
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", flexWrap: "wrap" }}>
@@ -1259,8 +1295,76 @@ function SyllabusView({ t, user, isMobile }) {
           </div>
         </div>
       )}
+
+      {/* Suggest Content Modal */}
+      {showSuggestModal && (
+        <div onClick={() => setShowSuggestModal(false)} style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: t.card, borderRadius: 20, padding: "32px 28px", maxWidth: 480, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+            {suggestSuccess ? (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 8 }}>Thank you!</div>
+                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted }}>Your suggestion has been sent to the RIF-App team for review.</div>
+              </div>
+            ) : (
+              <>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 6 }}>💡 Suggest Missing Content</h3>
+                <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginBottom: 20 }}>
+                  Help us improve {activeSubject} ({filter} {level})
+                </p>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>What's this about?</label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[["missing_topic", "Missing Topic"], ["incorrect_info", "Incorrect Info"], ["other", "Other"]].map(([val, label]) => (
+                      <button key={val} onClick={() => setSuggestType(val)} style={{
+                        padding: "6px 14px", borderRadius: 99,
+                        background: suggestType === val ? "#C9A84C" : t.bg,
+                        borderWidth: 1, borderStyle: "solid", borderColor: suggestType === val ? "#C9A84C" : t.cardBorder,
+                        color: suggestType === val ? "#0A1628" : t.textMuted,
+                        fontSize: 12, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif",
+                      }}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Topic name</label>
+                  <input
+                    value={suggestText}
+                    onChange={e => setSuggestText(e.target.value)}
+                    placeholder="e.g. Vectors in 3D Space"
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Additional details (optional)</label>
+                  <textarea
+                    value={suggestNotes}
+                    onChange={e => setSuggestNotes(e.target.value)}
+                    placeholder="Any extra context that would help us..."
+                    rows={3}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none", resize: "vertical" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => setShowSuggestModal(false)} style={{ flex: 1, background: "transparent", borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 10, padding: "12px", color: t.text, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+                    Cancel
+                  </button>
+                  <button onClick={submitSuggestion} disabled={suggestSending || !suggestText.trim()} style={{ flex: 1, background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "12px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, opacity: suggestSending || !suggestText.trim() ? 0.6 : 1 }}>
+                    {suggestSending ? "Sending..." : "Submit →"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
+
 }
 async function generateHash(fields, integrationKey) {
   const str = Object.values(fields).join("") + integrationKey;
@@ -2893,6 +2997,7 @@ function VideosView({ t, user, isMobile }) {
 function AdminView({ t, user, isMobile }) {
   const [tab, setTab] = useState("videos");
   const [pendingVideos, setPendingVideos] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -2904,11 +3009,12 @@ function AdminView({ t, user, isMobile }) {
 
   async function loadAdminData() {
     try {
-      const { data: videos } = await supabase
-        .from("teacher_videos")
-        .select("*, teacher_profiles(full_name, school, subject)")
-        .eq("status", "pending");
-      if (videos) setPendingVideos(videos);
+      const { data: suggestionsData } = await supabase
+        .from("content_suggestions")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (suggestionsData) setSuggestions(suggestionsData);
 
       const { count: userCount } = await supabase
         .from("profiles")
@@ -2950,8 +3056,21 @@ function AdminView({ t, user, isMobile }) {
     setPendingVideos(prev => prev.filter(v => v.id !== videoId));
   }
 
+  async function approveSuggestion(id) {
+    await supabase.from("content_suggestions").update({ status: "approved" }).eq("id", id);
+    setSuggestions(prev => prev.filter(s => s.id !== id));
+    setMessage("✅ Suggestion approved! Remember to add it to syllabus_topics manually.");
+  }
+
+  async function rejectSuggestion(id) {
+    await supabase.from("content_suggestions").update({ status: "rejected" }).eq("id", id);
+    setSuggestions(prev => prev.filter(s => s.id !== id));
+    setMessage("❌ Suggestion rejected!");
+  }
+
   const tabs = [
     { id: "videos", label: "🎥 Pending Videos" },
+    { id: "suggestions", label: "💡 Content Suggestions" },
     { id: "stats", label: "📊 Platform Stats" },
   ];
 
@@ -3028,6 +3147,53 @@ function AdminView({ t, user, isMobile }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Content Suggestions Tab */}
+      {tab === "suggestions" && (
+        <div>
+          {suggestions.length === 0 ? (
+            <div style={{ background: t.card, borderRadius: 16, padding: 40, textAlign: "center" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 8 }}>No pending suggestions</div>
+              <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>Students and teachers haven't suggested anything new</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {suggestions.map(s => (
+                <div key={s.id} style={{ background: t.card, borderRadius: 16, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <div>
+                      <span style={{ background: s.suggestion_type === "missing_topic" ? "#1A4DB322" : s.suggestion_type === "incorrect_info" ? "#F4433622" : "#6B7A9922", color: s.suggestion_type === "missing_topic" ? "#1A4DB3" : s.suggestion_type === "incorrect_info" ? "#F44336" : "#6B7A99", borderRadius: 6, padding: "2px 10px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
+                        {s.suggestion_type === "missing_topic" ? "MISSING TOPIC" : s.suggestion_type === "incorrect_info" ? "INCORRECT INFO" : "OTHER"}
+                      </span>
+                      <h4 style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: t.text, marginBottom: 4 }}>{s.suggested_topic}</h4>
+                      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted }}>
+                        {s.subject} · {s.curriculum} {s.level}
+                      </div>
+                      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginTop: 4 }}>
+                        By {s.user_name} · {new Date(s.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  {s.notes && (
+                    <div style={{ background: t.bg, borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.text }}>
+                      {s.notes}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={() => approveSuggestion(s.id)} style={{ flex: 1, background: "linear-gradient(135deg, #1A7A4A, #2EAD6A)", border: "none", borderRadius: 8, padding: "10px", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
+                      ✅ Approve
+                    </button>
+                    <button onClick={() => rejectSuggestion(s.id)} style={{ flex: 1, background: "#F4433622", borderWidth: 1, borderStyle: "solid", borderColor: "#F44336", borderRadius: 8, padding: "10px", color: "#F44336", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
+                      ❌ Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
