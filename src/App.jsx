@@ -1046,6 +1046,7 @@ function SyllabusView({ t, user, isMobile }) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ZIMSEC");
   const [level, setLevel] = useState("O-Level");
+  const [confirmTopic, setConfirmTopic] = useState(null);
   const [showSuggestModal, setShowSuggestModal] = useState(false);
   const [suggestType, setSuggestType] = useState("missing_topic");
   const [suggestText, setSuggestText] = useState("");
@@ -1105,6 +1106,11 @@ function SyllabusView({ t, user, isMobile }) {
 
   async function updateProgress(topicId, status) {
     if (!user) return;
+    if (status === "done") {
+      const topic = topics.find(t => t.id === topicId);
+      setConfirmTopic(topic);
+      return;
+    }
     await supabase.from("student_progress").upsert({
       user_id: user.id,
       topic_id: topicId,
@@ -1112,6 +1118,18 @@ function SyllabusView({ t, user, isMobile }) {
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,topic_id" });
     setProgress(prev => ({ ...prev, [topicId]: status }));
+  }
+
+  async function confirmDone() {
+    if (!confirmTopic) return;
+    await supabase.from("student_progress").upsert({
+      user_id: user.id,
+      topic_id: confirmTopic.id,
+      status: "done",
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,topic_id" });
+    setProgress(prev => ({ ...prev, [confirmTopic.id]: "done" }));
+    setConfirmTopic(null);
   }
 
   async function submitSuggestion() {
@@ -1286,12 +1304,35 @@ function SyllabusView({ t, user, isMobile }) {
                 ))}
               </div>
             </div>
-            <button
-              onClick={() => topics.forEach(topic => updateProgress(topic.id, "done"))}
-              style={{ width: "100%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif" }}
-            >
-              Mark All Done ✓
-            </button>
+            <div style={{ background: "#1A4DB322", borderRadius: 10, padding: "12px 14px", fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: "#1A4DB3", textAlign: "center" }}>
+              💡 Mark each topic done individually after you've studied it
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Done Modal */}
+      {confirmTopic && (
+        <div onClick={() => setConfirmTopic(null)} style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: t.card, borderRadius: 20, padding: "32px 28px", maxWidth: 440, width: "100%" }}>
+            <div style={{ fontSize: 40, marginBottom: 12, textAlign: "center" }}>🤔</div>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 19, color: t.text, marginBottom: 8, textAlign: "center" }}>
+              Before you mark this done...
+            </h3>
+            <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted, marginBottom: 20, textAlign: "center", lineHeight: 1.6 }}>
+              Can you confidently explain <strong style={{ color: t.text }}>"{confirmTopic.topic_name}"</strong> to someone else without notes?
+            </p>
+            <div style={{ background: t.bg, borderRadius: 12, padding: "14px 16px", marginBottom: 20, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, lineHeight: 1.6 }}>
+              💡 Marking topics as done builds your progress and leaderboard score. Only mark it when you've genuinely studied and understood it — honesty helps you learn better!
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setConfirmTopic(null)} style={{ flex: 1, background: "transparent", borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 10, padding: "12px", color: t.text, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+                Not yet
+              </button>
+              <button onClick={confirmDone} style={{ flex: 1, background: "linear-gradient(135deg, #1A7A4A, #2EAD6A)", border: "none", borderRadius: 10, padding: "12px", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+                Yes, I understand it ✓
+              </button>
+            </div>
           </div>
         </div>
       )}
