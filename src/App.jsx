@@ -2283,8 +2283,8 @@ function NotesView({ t, user, isMobile }) {
   "anthropic-dangerous-direct-browser-access": "true",
 },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
+          model: "claude-sonnet-4-6",
+          max_tokens: 2000,
           messages: [{
             role: "user",
             content: `You are an expert ${filter} ${level} teacher in Zimbabwe. Write clear, detailed study notes for the topic "${topicName}" in the subject "${subject}" for ${filter} ${level} students in Zimbabwe. 
@@ -2305,7 +2305,14 @@ Format your response with:
 ## Summary
 (5 bullet points summarizing the topic)
 
-Keep it relevant to the Zimbabwe ${filter} curriculum and exam style.`,
+Keep it relevant to the Zimbabwe ${filter} curriculum and exam style.
+
+Important formatting rules:
+- Do NOT use LaTeX notation or complex math symbols like \\frac, \\sqrt, or similar
+- Write fractions as "1/2" or "a divided by b", not stacked notation
+- Do NOT attempt to draw graphs, diagrams or ASCII art - describe them in words instead
+- Use **bold** only for genuinely important terms, sparingly
+- Keep formatting simple and readable on a mobile phone screen`,
           }],
         }),
       });
@@ -2321,18 +2328,26 @@ Keep it relevant to the Zimbabwe ${filter} curriculum and exam style.`,
     setLoading(false);
   }
 
+  function renderInlineBold(line) {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={idx} style={{ fontWeight: 700, color: t.text }}>{part.slice(2, -2)}</strong>;
+      }
+      return <span key={idx}>{part}</span>;
+    });
+  }
+
   function formatNotes(text) {
     return text.split("\n").map((line, i) => {
-      if (line.startsWith("## ")) {
-        return <div key={i} style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: t.text, marginTop: 20, marginBottom: 8 }}>{line.replace("## ", "")}</div>;
+      if (line.match(/^#{1,3}\s*/)) {
+        return <div key={i} style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: t.text, marginTop: 20, marginBottom: 8 }}>{renderInlineBold(line.replace(/^#{1,3}\s*/, ""))}</div>;
       } else if (line.startsWith("- ") || line.startsWith("• ")) {
-        return <div key={i} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, marginBottom: 6, paddingLeft: 16, display: "flex", gap: 8 }}><span style={{ color: "#C9A84C", flexShrink: 0 }}>•</span><span>{line.replace("- ", "").replace("• ", "")}</span></div>;
-      } else if (line.startsWith("**") && line.endsWith("**")) {
-        return <div key={i} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, fontWeight: 700, marginBottom: 6 }}>{line.replace(/\*\*/g, "")}</div>;
+        return <div key={i} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, marginBottom: 6, paddingLeft: 16, display: "flex", gap: 8 }}><span style={{ color: "#C9A84C", flexShrink: 0 }}>•</span><span>{renderInlineBold(line.replace("- ", "").replace("• ", ""))}</span></div>;
       } else if (line.trim() === "") {
         return <div key={i} style={{ height: 8 }} />;
       } else {
-        return <div key={i} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, lineHeight: 1.7, marginBottom: 4 }}>{line}</div>;
+        return <div key={i} style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.text, lineHeight: 1.7, marginBottom: 4 }}>{renderInlineBold(line)}</div>;
       }
     });
   }
