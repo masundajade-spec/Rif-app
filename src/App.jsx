@@ -2269,19 +2269,39 @@ function NotesView({ t, user, isMobile }) {
     if (data) setTopics(data);
   }
 
-  async function generateNotes(topicName) {
+  async function generateNotes(topicName, forceRegenerate = false) {
     setTopic(topicName);
     setNotes("");
     setLoading(true);
+
     try {
+      // Check cache first (unless forcing regeneration)
+      if (!forceRegenerate) {
+        const { data: cached } = await supabase
+          .from("notes_cache")
+          .select("content")
+          .eq("subject", subject)
+          .eq("curriculum", filter)
+          .eq("level", level)
+          .eq("topic_name", topicName)
+          .maybeSingle();
+
+        if (cached && cached.content) {
+          setNotes(cached.content);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Not cached - generate fresh with AI
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { 
-  "Content-Type": "application/json",
-  "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
-  "anthropic-version": "2023-06-01",
-  "anthropic-dangerous-direct-browser-access": "true",
-},
+          "Content-Type": "application/json",
+          "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 2000,
@@ -2318,7 +2338,17 @@ Important formatting rules:
       });
       const data = await response.json();
       if (data.content && data.content[0]) {
-        setNotes(data.content[0].text);
+        const generatedText = data.content[0].text;
+        setNotes(generatedText);
+
+        await supabase.from("notes_cache").upsert({
+          subject,
+          curriculum: filter,
+          level,
+          topic_name: topicName,
+          content: generatedText,
+          generated_by: user.id,
+        }, { onConflict: "subject,curriculum,level,topic_name" });
       } else {
         setNotes("Failed to generate notes: " + JSON.stringify(data));
       }
