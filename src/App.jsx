@@ -3341,21 +3341,32 @@ function FlashcardsView({ t, user, isMobile }) {
   const [sessionStats, setSessionStats] = useState({ gotIt: 0, studyMore: 0 });
   const [studyMoreCards, setStudyMoreCards] = useState([]);
   const [sessionDone, setSessionDone] = useState(false);
+  const [showAiGenerate, setShowAiGenerate] = useState(false);
+  const [aiSubject, setAiSubject] = useState("");
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   useEffect(() => {
     loadSubjects();
   }, [filter, level]);
 
   async function loadSubjects() {
-    const { data } = await supabase
+    const { data: manualData } = await supabase
       .from("flashcards")
       .select("subject")
       .eq("curriculum", filter)
       .eq("level", level);
-    if (data) {
-      const unique = [...new Set(data.map(d => d.subject))];
-      setSubjects(unique);
-    }
+
+    const { data: aiData } = await supabase
+      .from("flashcards_ai_cache")
+      .select("subject")
+      .eq("curriculum", filter)
+      .eq("level", level);
+
+    const manualSubjects = manualData ? manualData.map(d => d.subject) : [];
+    const aiSubjects = aiData ? aiData.map(d => d.subject) : [];
+    const unique = [...new Set([...manualSubjects, ...aiSubjects])];
+    setSubjects(unique);
   }
 
   async function startSession(subj) {
@@ -3366,13 +3377,39 @@ function FlashcardsView({ t, user, isMobile }) {
     setSessionDone(false);
     setSessionStats({ gotIt: 0, studyMore: 0 });
     setStudyMoreCards([]);
-    const { data } = await supabase
+
+    const { data: manualCards } = await supabase
       .from("flashcards")
       .select("*")
       .eq("subject", subj)
       .eq("curriculum", filter)
       .eq("level", level);
-    if (data) setCards(data.sort(() => Math.random() - 0.5));
+
+    const { data: aiTopics } = await supabase
+      .from("flashcards_ai_cache")
+      .select("*")
+      .eq("subject", subj)
+      .eq("curriculum", filter)
+      .eq("level", level);
+
+    let allCards = manualCards ? [...manualCards] : [];
+
+    if (aiTopics) {
+      aiTopics.forEach(topicEntry => {
+        const converted = topicEntry.cards.map((c, i) => ({
+          id: `ai-${topicEntry.id}-${i}`,
+          subject: topicEntry.subject,
+          curriculum: topicEntry.curriculum,
+          level: topicEntry.level,
+          topic: topicEntry.topic,
+          front: c.front,
+          back: c.back,
+        }));
+        allCards = [...allCards, ...converted];
+      });
+    }
+
+    setCards(allCards.sort(() => Math.random() - 0.5));
     setLoading(false);
   }
 
@@ -3410,6 +3447,104 @@ function FlashcardsView({ t, user, isMobile }) {
     setSessionDone(false);
   }
 
+  async function generateAiFlashcards() {
+    if (!aiSubject.trim() || !aiTopic.trim()) return;
+    setAiGenerating(true);
+
+    try {
+      // Check cache first
+      const { data: cached } = await supabase
+        .from("flashcards_ai_cache")
+        .select("cards")
+        .eq("subject", aiSubject.trim())
+        .eq("curriculum", filter)
+        .eq("level", level)
+        .eq("topic", aiTopic.trim())
+        .maybeSingle();
+
+      let cardsData;
+
+      if (cached && cached.cards) {
+        cardsData = cached.cards;
+      } else {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-6",
+            max_tokens: 1500,
+            messages: [{
+              role: "user",
+              content: `You are an expert ${filter} ${level} teacher in Zimbabwe. Create 10 flashcards for the topic "${aiTopic.trim()}" in the subject "${aiSubject.trim()}" for ${filter} ${level} students in Zimbabwe.
+
+Respond ONLY with valid JSON in this exact format, nothing else before or after:
+[
+  {"front": "question text", "back": "answer text"},
+  {"front": "question text", "back": "answer text"}
+]
+
+Rules:
+- Exactly 10 flashcards
+- Questions should test key concepts a student needs to know for exams
+- Answers should be concise (1-2 sentences max)
+- Do not use LaTeX or complex math notation - write fractions as "1/2"
+- Keep it relevant to the Zimbabwe ${filter} curriculum`,
+            }],
+          }),
+        });
+        const data = await response.json();
+        if (!data.content || !data.content[0]) {
+          alert("Failed to generate flashcards. Please try again.");
+          setAiGenerating(false);
+          return;
+        }
+        const rawText = data.content[0].text.trim();
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        cardsData = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+
+        // Save to cache
+        await supabase.from("flashcards_ai_cache").upsert({
+          subject: aiSubject.trim(),
+          curriculum: filter,
+          level,
+          topic: aiTopic.trim(),
+          cards: cardsData,
+          generated_by: user.id,
+        }, { onConflict: "subject,curriculum,level,topic" });
+      }
+
+      // Convert to the same format used elsewhere and start session
+      const formattedCards = cardsData.map((c, i) => ({
+        id: `ai-${Date.now()}-${i}`,
+        subject: aiSubject.trim(),
+        curriculum: filter,
+        level,
+        topic: aiTopic.trim(),
+        front: c.front,
+        back: c.back,
+      }));
+
+      setSubject(aiSubject.trim());
+      setCards(formattedCards.sort(() => Math.random() - 0.5));
+      setCurrentIndex(0);
+      setFlipped(false);
+      setSessionDone(false);
+      setSessionStats({ gotIt: 0, studyMore: 0 });
+      setStudyMoreCards([]);
+      setShowAiGenerate(false);
+      setAiSubject("");
+      setAiTopic("");
+    } catch (e) {
+      alert("Error generating flashcards: " + e.message);
+    }
+    setAiGenerating(false);
+  }
+
   // Subject selection screen
   if (!subject) {
     return (
@@ -3433,7 +3568,10 @@ function FlashcardsView({ t, user, isMobile }) {
         {subjects.length === 0 ? (
           <div style={{ background: t.card, borderRadius: 16, padding: 40, textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🃏</div>
-            <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted }}>No flashcards for this curriculum yet. Check back soon!</div>
+            <div style={{ fontFamily: "'Source Sans 3', sans-serif", color: t.textMuted, marginBottom: 20 }}>No flashcards for this curriculum yet.</div>
+            <button onClick={() => setShowAiGenerate(true)} style={{ background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "12px 24px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+              ✨ Generate with AI
+            </button>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
@@ -3446,6 +3584,56 @@ function FlashcardsView({ t, user, isMobile }) {
                 <span style={{ fontSize: 24 }}>🃏</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* AI Generate button when subjects exist too */}
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <button onClick={() => setShowAiGenerate(true)} style={{ background: "transparent", borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 10, padding: "10px 20px", color: t.textMuted, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
+            ✨ Generate cards for a specific topic with AI
+          </button>
+        </div>
+
+        {/* AI Generate Modal */}
+        {showAiGenerate && (
+          <div onClick={() => !aiGenerating && setShowAiGenerate(false)} style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: t.card, borderRadius: 20, padding: "32px 28px", maxWidth: 440, width: "100%" }}>
+              <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 19, color: t.text, marginBottom: 8 }}>✨ Generate Flashcards with AI</h3>
+              <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginBottom: 20 }}>
+                {filter} {level} · Get 10 instant flashcards for any topic
+              </p>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Subject</label>
+                <input
+                  value={aiSubject}
+                  onChange={e => setAiSubject(e.target.value)}
+                  placeholder="e.g. Heritage Studies"
+                  disabled={aiGenerating}
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Topic</label>
+                <input
+                  value={aiTopic}
+                  onChange={e => setAiTopic(e.target.value)}
+                  placeholder="e.g. Pre-Colonial Societies"
+                  disabled={aiGenerating}
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setShowAiGenerate(false)} disabled={aiGenerating} style={{ flex: 1, background: "transparent", borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 10, padding: "12px", color: t.text, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+                  Cancel
+                </button>
+                <button onClick={generateAiFlashcards} disabled={aiGenerating || !aiSubject.trim() || !aiTopic.trim()} style={{ flex: 1, background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "12px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, opacity: aiGenerating || !aiSubject.trim() || !aiTopic.trim() ? 0.6 : 1 }}>
+                  {aiGenerating ? "Generating..." : "Generate →"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
