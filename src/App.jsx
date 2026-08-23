@@ -242,6 +242,7 @@ export default function App() {
   const [fontSize, setFontSize] = useState("normal");
   const [highContrast, setHighContrast] = useState(false);
   const [screen, setScreen] = useState("Landing");
+  const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState(null);
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState([]);
@@ -257,11 +258,16 @@ export default function App() {
 
   useEffect(() => {
     // Check if user is already logged in
+    const splashStart = Date.now();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setUser(session.user);
         setScreen("Dashboard");
       }
+      const elapsed = Date.now() - splashStart;
+      const minDisplay = 700;
+      const remaining = Math.max(0, minDisplay - elapsed);
+      setTimeout(() => setAuthChecked(true), remaining);
     });
 
     // Listen for auth changes
@@ -289,6 +295,10 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        @keyframes pulse-scale {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.15); opacity: 0.7; }
+        }
         .hover-lift { transition: transform 0.2s, box-shadow 0.2s; }
         .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
         .gold-btn { background: linear-gradient(135deg, #C9A84C, #E8CC80); color: #0A1628; border: none; cursor: pointer; font-weight: 700; font-family: 'Source Sans 3', sans-serif; letter-spacing: 0.04em; transition: opacity 0.2s, transform 0.15s; }
@@ -301,12 +311,18 @@ export default function App() {
         input:focus { border-color: #C9A84C !important; }
       `}</style>
 
-      {screen === "Landing" && <LandingScreen t={t} isDark={isDark} setIsDark={setIsDark} setScreen={setScreen} />}
-      {screen === "Login" && <AuthScreen t={t} mode="login" setScreen={setScreen} />}
-      {screen === "Terms" && <TermsScreen t={t} setScreen={setScreen} />}
-      {screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
-      {screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
-      {["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin", "More", "Flashcards", "Analytics", "Leaderboard"].includes(screen) && (
+      {!authChecked && (
+        <div style={{ minHeight: "100vh", background: "#08101E", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 12, background: "linear-gradient(135deg, #C9A84C, #E8CC80)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 24, color: "#0A1628", animation: "pulse-scale 1.2s ease-in-out infinite" }}>R1</div>
+          <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: "#6B7A99" }}>Loading RIF-App...</div>
+        </div>
+      )}
+      {authChecked && screen === "Landing" && <LandingScreen t={t} isDark={isDark} setIsDark={setIsDark} setScreen={setScreen} />}
+      {authChecked && screen === "Login" && <AuthScreen t={t} mode="login" setScreen={setScreen} />}
+      {authChecked && screen === "Terms" && <TermsScreen t={t} setScreen={setScreen} />}
+      {authChecked && screen === "Privacy" && <PrivacyScreen t={t} setScreen={setScreen} />}
+      {authChecked && screen === "Signup" && <AuthScreen t={t} mode="signup" setScreen={setScreen} step={step} setStep={setStep} selected={selected} setSelected={setSelected} />}
+      {authChecked && ["Dashboard", "Syllabus", "Library", "Notes", "Videos", "Chat", "Tests", "Teacher", "Parent", "Admin", "More", "Flashcards", "Analytics", "Leaderboard"].includes(screen) && (
       <AppShell t={t} isDark={isDark} setIsDark={setIsDark} screen={screen} setScreen={setScreen} user={user} handleLogout={handleLogout} isMobile={isMobile} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast} fontScale={fontScale} />
       )}
     </div>
@@ -1086,6 +1102,24 @@ function SyllabusView({ t, user, isMobile }) {
   const [filter, setFilter] = useState("ZIMSEC");
   const [level, setLevel] = useState("O-Level");
   const [confirmTopic, setConfirmTopic] = useState(null);
+  const [quizQuestions, setQuizQuestions] = useState(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizScore, setQuizScore] = useState(0);
+  const [quizLoadingMessage, setQuizLoadingMessage] = useState("Analyzing topic...");
+
+useEffect(() => {
+    if (!quizLoading) return;
+    const messages = ["Analyzing topic...", "Writing questions...", "Checking difficulty...", "Almost done..."];
+    let i = 0;
+    setQuizLoadingMessage(messages[0]);
+    const interval = setInterval(() => {
+      i = (i + 1) % messages.length;
+      setQuizLoadingMessage(messages[i]);
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [quizLoading]);
   const [showSuggestModal, setShowSuggestModal] = useState(false);
   const [suggestType, setSuggestType] = useState("missing_topic");
   const [suggestText, setSuggestText] = useState("");
@@ -1148,6 +1182,11 @@ function SyllabusView({ t, user, isMobile }) {
     if (status === "done") {
       const topic = topics.find(t => t.id === topicId);
       setConfirmTopic(topic);
+      setQuizQuestions(null);
+      setQuizAnswers({});
+      setQuizSubmitted(false);
+      setQuizScore(0);
+      loadCheckpointQuiz(topic);
       return;
     }
     await supabase.from("student_progress").upsert({
@@ -1157,6 +1196,87 @@ function SyllabusView({ t, user, isMobile }) {
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,topic_id" });
     setProgress(prev => ({ ...prev, [topicId]: status }));
+  }
+
+async function loadCheckpointQuiz(topicData) {
+    setQuizLoading(true);
+    try {
+      const { data: cached } = await supabase
+        .from("checkpoint_quiz_cache")
+        .select("questions")
+        .eq("subject", activeSubject)
+        .eq("curriculum", filter)
+        .eq("level", level)
+        .eq("topic_name", topicData.topic_name)
+        .maybeSingle();
+
+      if (cached && cached.questions) {
+        setQuizQuestions(cached.questions);
+        setQuizLoading(false);
+        return;
+      }
+
+      const usageCheck = await checkAiUsageAllowed(user.id);
+      if (!usageCheck.allowed) {
+        setQuizQuestions("unavailable");
+        setQuizLoading(false);
+        return;
+      }
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 800,
+          messages: [{
+            role: "user",
+            content: `You are an expert ${filter} ${level} teacher in Zimbabwe. Create exactly 3 quick multiple-choice checkpoint questions to verify a student genuinely understands "${topicData.topic_name}" in "${activeSubject}" (${filter} ${level}).
+
+Respond ONLY with valid JSON, no other text, in this exact format:
+[
+  {"question": "text", "options": {"A": "text", "B": "text", "C": "text", "D": "text"}, "correct": "A"},
+  {"question": "text", "options": {"A": "text", "B": "text", "C": "text", "D": "text"}, "correct": "B"},
+  {"question": "text", "options": {"A": "text", "B": "text", "C": "text", "D": "text"}, "correct": "C"}
+]
+
+Rules:
+- Questions should test genuine understanding, not trivial recall
+- Keep questions short and mobile-friendly
+- Do not use LaTeX notation, write fractions as "1/2"`,
+          }],
+        }),
+      });
+      const data = await response.json();
+      if (!data.content || !data.content[0]) {
+        setQuizQuestions("unavailable");
+        setQuizLoading(false);
+        return;
+      }
+      const rawText = data.content[0].text.trim();
+      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      const questions = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+
+      await supabase.from("checkpoint_quiz_cache").upsert({
+        subject: activeSubject,
+        curriculum: filter,
+        level,
+        topic_name: topicData.topic_name,
+        questions,
+        generated_by: user.id,
+      }, { onConflict: "subject,curriculum,level,topic_name" });
+      await logAiUsage(user.id, "checkpoint_quiz");
+
+      setQuizQuestions(questions);
+    } catch (e) {
+      setQuizQuestions("unavailable");
+    }
+    setQuizLoading(false);
   }
 
   async function confirmDone() {
@@ -1350,28 +1470,113 @@ function SyllabusView({ t, user, isMobile }) {
         </div>
       )}
 
-      {/* Confirm Done Modal */}
+      {/* Checkpoint Quiz Modal */}
       {confirmTopic && (
         <div onClick={() => setConfirmTopic(null)} style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: t.card, borderRadius: 20, padding: "32px 28px", maxWidth: 440, width: "100%" }}>
-            <div style={{ fontSize: 40, marginBottom: 12, textAlign: "center" }}>🤔</div>
-            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 19, color: t.text, marginBottom: 8, textAlign: "center" }}>
-              Before you mark this done...
-            </h3>
-            <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted, marginBottom: 20, textAlign: "center", lineHeight: 1.6 }}>
-              Can you confidently explain <strong style={{ color: t.text }}>"{confirmTopic.topic_name}"</strong> to someone else without notes?
-            </p>
-            <div style={{ background: t.bg, borderRadius: 12, padding: "14px 16px", marginBottom: 20, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, lineHeight: 1.6 }}>
-              💡 Marking topics as done builds your progress and leaderboard score. Only mark it when you've genuinely studied and understood it — honesty helps you learn better!
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setConfirmTopic(null)} style={{ flex: 1, background: "transparent", borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 10, padding: "12px", color: t.text, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
-                Not yet
-              </button>
-              <button onClick={confirmDone} style={{ flex: 1, background: "linear-gradient(135deg, #1A7A4A, #2EAD6A)", border: "none", borderRadius: 10, padding: "12px", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
-                Yes, I understand it ✓
-              </button>
-            </div>
+          <div onClick={e => e.stopPropagation()} style={{ background: t.card, borderRadius: 20, padding: "32px 28px", maxWidth: 500, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+
+            {quizLoading && (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <div style={{ fontSize: 40, marginBottom: 12, animation: "pulse-scale 1.2s ease-in-out infinite" }}>✨</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 6 }}>{quizLoadingMessage}</div>
+                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted }}>This only happens once per topic</div>
+              </div>
+            )}
+
+            {!quizLoading && quizQuestions === "unavailable" && (
+              <div>
+                <div style={{ fontSize: 40, marginBottom: 12, textAlign: "center" }}>🤔</div>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 19, color: t.text, marginBottom: 8, textAlign: "center" }}>
+                  Before you mark this done...
+                </h3>
+                <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted, marginBottom: 20, textAlign: "center", lineHeight: 1.6 }}>
+                  Can you confidently explain <strong style={{ color: t.text }}>"{confirmTopic.topic_name}"</strong> to someone else without notes?
+                </p>
+                <div style={{ background: t.bg, borderRadius: 12, padding: "14px 16px", marginBottom: 20, fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, lineHeight: 1.6 }}>
+                  💡 Checkpoint quiz unavailable right now — be honest with yourself before marking this done!
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => setConfirmTopic(null)} style={{ flex: 1, background: "transparent", borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 10, padding: "12px", color: t.text, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+                    Not yet
+                  </button>
+                  <button onClick={confirmDone} style={{ flex: 1, background: "linear-gradient(135deg, #1A7A4A, #2EAD6A)", border: "none", borderRadius: 10, padding: "12px", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+                    Yes, I understand it ✓
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!quizLoading && quizQuestions && quizQuestions !== "unavailable" && !quizSubmitted && (
+              <div>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: t.text, marginBottom: 6 }}>🧠 Quick Checkpoint</h3>
+                <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.textMuted, marginBottom: 20 }}>
+                  Answer these to confirm you understand "{confirmTopic.topic_name}"
+                </p>
+                {quizQuestions.map((q, qi) => (
+                  <div key={qi} style={{ marginBottom: 20 }}>
+                    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 10 }}>
+                      {qi + 1}. {q.question}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {Object.entries(q.options).map(([key, val]) => (
+                        <div key={key} onClick={() => setQuizAnswers(prev => ({ ...prev, [qi]: key }))} style={{
+                          padding: "10px 14px", borderRadius: 8, cursor: "pointer",
+                          background: quizAnswers[qi] === key ? "#1A4DB322" : t.bg,
+                          borderWidth: 1.5, borderStyle: "solid", borderColor: quizAnswers[qi] === key ? "#1A4DB3" : t.cardBorder,
+                          fontFamily: "'Source Sans 3', sans-serif", fontSize: 13, color: t.text,
+                        }}>
+                          <strong>{key}.</strong> {val}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => setConfirmTopic(null)} style={{ flex: 1, background: "transparent", borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 10, padding: "12px", color: t.text, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14 }}>
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      const correct = quizQuestions.filter((q, qi) => quizAnswers[qi] === q.correct).length;
+                      setQuizScore(correct);
+                      setQuizSubmitted(true);
+                    }}
+                    disabled={Object.keys(quizAnswers).length < quizQuestions.length}
+                    style={{ flex: 1, background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "12px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, opacity: Object.keys(quizAnswers).length < quizQuestions.length ? 0.5 : 1 }}
+                  >
+                    Submit →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!quizLoading && quizSubmitted && (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>{quizScore >= 2 ? "🎉" : "📚"}</div>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 8 }}>
+                  {quizScore}/{quizQuestions.length} correct
+                </h3>
+                {quizScore >= 2 ? (
+                  <>
+                    <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted, marginBottom: 24 }}>
+                      Great work! You've shown you understand this topic.
+                    </p>
+                    <button onClick={confirmDone} style={{ width: "100%", background: "linear-gradient(135deg, #1A7A4A, #2EAD6A)", border: "none", borderRadius: 10, padding: "14px", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 15 }}>
+                      Mark as Done ✓
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted, marginBottom: 24 }}>
+                      It looks like this topic needs a bit more review before marking it done. That's okay — keep studying!
+                    </p>
+                    <button onClick={() => setConfirmTopic(null)} style={{ width: "100%", background: "transparent", borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, borderRadius: 10, padding: "14px", color: t.text, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 15 }}>
+                      Okay, I'll review more
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
