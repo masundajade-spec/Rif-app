@@ -261,7 +261,7 @@ export default function App() {
     const splashStart = Date.now();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        setUser(session.user);
+        setUser(session.user);                                                                
         setScreen("Dashboard");
       }
       const elapsed = Date.now() - splashStart;
@@ -3601,10 +3601,46 @@ function FlashcardsView({ t, user, isMobile }) {
   const [aiSubject, setAiSubject] = useState("");
   const [aiTopic, setAiTopic] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [syllabusSubjects, setSyllabusSubjects] = useState([]);
+
+useEffect(() => {
+    async function loadSyllabusSubjects() {
+      const { data } = await supabase
+        .from("syllabus_topics")
+        .select("subject")
+        .eq("curriculum", filter)
+        .eq("level", level);
+      if (data) {
+        const unique = [...new Set(data.map(d => d.subject))].sort();
+        setSyllabusSubjects(unique);
+      }
+    }
+    loadSyllabusSubjects();
+  }, [filter, level]);
 
   useEffect(() => {
     loadSubjects();
   }, [filter, level]);
+
+  const [syllabusTopicsForAiSubject, setSyllabusTopicsForAiSubject] = useState([]);
+
+  useEffect(() => {
+    async function loadTopicsForSubject() {
+      if (!aiSubject) {
+        setSyllabusTopicsForAiSubject([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("syllabus_topics")
+        .select("topic_name")
+        .eq("subject", aiSubject)
+        .eq("curriculum", filter)
+        .eq("level", level)
+        .order("topic_order", { ascending: true });
+      if (data) setSyllabusTopicsForAiSubject(data.map(d => d.topic_name));
+    }
+    loadTopicsForSubject();
+  }, [aiSubject, filter, level]);
 
   async function loadSubjects() {
     const { data: manualData } = await supabase
@@ -3873,24 +3909,37 @@ Rules:
 
               <div style={{ marginBottom: 14 }}>
                 <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Subject</label>
-                <input
+                <select
                   value={aiSubject}
                   onChange={e => setAiSubject(e.target.value)}
-                  placeholder="e.g. Heritage Studies"
                   disabled={aiGenerating}
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}
-                />
+                >
+                  <option value="">Select a subject...</option>
+                  {syllabusSubjects.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
               </div>
 
               <div style={{ marginBottom: 20 }}>
                 <label style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, display: "block", marginBottom: 6 }}>Topic</label>
                 <input
+                  list="syllabus-topic-suggestions"
                   value={aiTopic}
                   onChange={e => setAiTopic(e.target.value)}
                   placeholder="e.g. Pre-Colonial Societies"
-                  disabled={aiGenerating}
+                  disabled={aiGenerating || !aiSubject}
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 8, borderWidth: 1, borderStyle: "solid", borderColor: t.cardBorder, background: t.bg, color: t.text, fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, outline: "none" }}
                 />
+                <datalist id="syllabus-topic-suggestions">
+                  {syllabusTopicsForAiSubject.map(topicName => (
+                    <option key={topicName} value={topicName} />
+                  ))}
+                </datalist>
+                <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 11, color: t.textMuted, marginTop: 4 }}>
+                  💡 Pick a subject first — suggestions will show real syllabus topics
+                </div>
               </div>
 
               <div style={{ display: "flex", gap: 10 }}>
