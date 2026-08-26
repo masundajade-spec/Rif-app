@@ -1690,7 +1690,7 @@ function LibraryView({ t, user, isMobile }) {
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 12, color: t.textMuted, marginBottom: 10 }}>{book.author}</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "#C9A84C" }}>{book.price}</span>
-           <button className="gold-btn" onClick={() => setPaymentItem({ name: book.title, price: parseFloat(book.price.replace("$","").replace("/mo","")) })} style={{ borderRadius: 7, padding: "5px 14px", fontSize: 12 }}>Subscribe</button>
+           <span style={{ background: "#1A7A4A22", color: "#1A7A4A", borderRadius: 7, padding: "5px 14px", fontSize: 12, fontFamily: "'Source Sans 3', sans-serif", fontWeight: 600, display: "inline-block" }}>Free during pilot</span>
               </div>
             </div>
           </div>
