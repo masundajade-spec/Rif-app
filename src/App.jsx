@@ -810,6 +810,7 @@ function DashboardView({ t, user, setScreen, isMobile }) {
   const [totalTopics, setTotalTopics] = useState(0);
   const [doneTopics, setDoneTopics] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [earnedBadges, setEarnedBadges] = useState([]);
   const [lockedBadges, setLockedBadges] = useState([]);
   const [streak, setStreak] = useState(0);
@@ -817,8 +818,27 @@ function DashboardView({ t, user, setScreen, isMobile }) {
   const [reminderSet, setReminderSet] = useState(false);
 
   useEffect(() => {
-    if (user) loadDashboard();
+    if (user) {
+      loadDashboard();
+      checkOnboarding();
+    }
   }, [user]);
+
+  async function checkOnboarding() {
+    const { data } = await supabase
+      .from("profiles")
+      .select("has_seen_onboarding")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (data && !data.has_seen_onboarding) {
+      setShowOnboarding(true);
+    }
+  }
+
+  async function dismissOnboarding() {
+    await supabase.from("profiles").update({ has_seen_onboarding: true }).eq("id", user.id);
+    setShowOnboarding(false);
+  }
 
   async function loadDashboard() {
     const { data: prog } = await supabase
@@ -1088,6 +1108,25 @@ if (reminderData && reminderData.length > 0) {
     </div>
   )}
 </div>
+
+           {/* First-time onboarding */}
+      {showOnboarding && (
+        <div onClick={dismissOnboarding} style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: t.card, borderRadius: 20, padding: "32px 28px", maxWidth: 420, width: "100%", textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>👋</div>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: t.text, marginBottom: 10 }}>Welcome to RIF-App!</h3>
+            <p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, color: t.textMuted, marginBottom: 20, lineHeight: 1.7 }}>
+              Not sure where to begin? Start with Syllabus to see your subjects and track your progress topic by topic. From there you can jump into Tests, Notes, and Chat whenever you're ready.
+            </p>
+            <button onClick={() => { dismissOnboarding(); setScreen("Syllabus"); }} style={{ width: "100%", background: "linear-gradient(135deg, #C9A84C, #E8CC80)", border: "none", borderRadius: 10, padding: "13px", color: "#0A1628", fontWeight: 700, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 14, marginBottom: 10 }}>
+              Take me to Syllabus
+            </button>
+            <button onClick={dismissOnboarding} style={{ width: "100%", background: "transparent", border: "none", padding: "8px", color: t.textMuted, cursor: "pointer", fontFamily: "'Source Sans 3', sans-serif", fontSize: 13 }}>
+              I'll explore on my own
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
